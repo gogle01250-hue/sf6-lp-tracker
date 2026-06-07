@@ -1,0 +1,1834 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SF6 LP Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Outfit:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+/* ==========================================================================
+   DESIGN TOKENS & SYSTEM VARIABLES
+   ========================================================================== */
+:root {
+    --bg-main: #0b0c10;
+    --bg-panel: rgba(22, 26, 35, 0.65);
+    --bg-panel-solid: #161a23;
+    --border-color: rgba(255, 255, 255, 0.07);
+    --border-hover: rgba(255, 255, 255, 0.15);
+    
+    /* SF6 Theme Colors */
+    --color-orange: #ff6a00;
+    --color-orange-glow: rgba(255, 106, 0, 0.4);
+    --color-cyan: #00f0ff;
+    --color-cyan-glow: rgba(0, 240, 255, 0.3);
+    --color-yellow: #ffcc00;
+    
+    /* Text Colors */
+    --text-primary: #f0f2f7;
+    --text-secondary: #9aa0b0;
+    --text-muted: #626875;
+    
+    /* Rank Specific Colors */
+    --rank-rookie: #808080;
+    --rank-iron: #a17455;
+    --rank-bronze: #cd7f32;
+    --rank-silver: #c0c0c0;
+    --rank-gold: #ffd700;
+    --rank-platinum: #a0b2c6;
+    --rank-diamond: #4fc3f7;
+    --rank-master: #9c27b0;
+    
+    /* Grid & Spacing */
+    --radius-lg: 16px;
+    --radius-md: 10px;
+    --radius-sm: 6px;
+    --font-heading: 'Orbitron', 'Outfit', 'Noto Sans JP', sans-serif;
+    --font-body: 'Outfit', 'Noto Sans JP', sans-serif;
+}
+
+/* ==========================================================================
+   RESET & BASE STYLES
+   ========================================================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    line-height: 1.6;
+    background-image: 
+        radial-gradient(circle at 10% 20%, rgba(255, 106, 0, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(0, 240, 255, 0.05) 0%, transparent 45%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-main); }
+::-webkit-scrollbar-thumb { background: #232a38; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #343f54; }
+
+/* ==========================================================================
+   LAYOUT STRUCTURE
+   ========================================================================== */
+.app-container {
+    max-width: 1300px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    background: var(--bg-panel);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+}
+
+.logo-area { display: flex; align-items: center; gap: 16px; }
+
+.logo-icon {
+    font-size: 2.2rem;
+    background: linear-gradient(135deg, var(--color-orange), var(--color-yellow));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 10px var(--color-orange-glow));
+}
+
+.logo-text h1 {
+    font-family: var(--font-heading);
+    font-size: 1.6rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    line-height: 1.1;
+    background: linear-gradient(90deg, #fff 0%, #dbe1e8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.logo-text p {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+    margin-top: 2px;
+}
+
+.header-actions { display: flex; gap: 10px; }
+
+/* ==========================================================================
+   DASHBOARD / STATS
+   ========================================================================== */
+.dashboard-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.stat-card {
+    position: relative;
+    background: var(--bg-panel);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 106, 0, 0.25);
+}
+
+.card-glow {
+    position: absolute;
+    top: -50px; right: -50px;
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, var(--color-orange-glow) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.stat-card:nth-child(2) .card-glow {
+    background: radial-gradient(circle, var(--color-cyan-glow) 0%, transparent 70%);
+}
+
+.card-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+}
+
+.card-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    display: block;
+    font-weight: 500;
+}
+
+.rank-badge-container { display: flex; align-items: center; gap: 18px; }
+
+.rank-badge-placeholder {
+    width: 60px; height: 60px;
+    display: flex; justify-content: center; align-items: center;
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    font-size: 1.8rem;
+}
+
+.rank-info-text h2 {
+    font-family: var(--font-heading);
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.rank-info-text p {
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    color: var(--color-orange);
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+.progress-val-container {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 4px 0;
+}
+
+.diff-value {
+    font-family: var(--font-heading);
+    font-size: 2.2rem;
+    font-weight: 900;
+}
+
+.diff-value.up { color: var(--color-cyan); text-shadow: 0 0 10px var(--color-cyan-glow); }
+.diff-value.down { color: #ef4444; text-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }
+.diff-value.zero { color: var(--text-muted); }
+
+.diff-unit {
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    font-weight: 700;
+}
+
+.card-subtext { font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; }
+
+.milestone-body { display: flex; flex-direction: column; gap: 6px; }
+
+.progress-bar-container {
+    width: 100%; height: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-orange), var(--color-yellow));
+    box-shadow: 0 0 8px var(--color-orange-glow);
+    border-radius: var(--radius-sm);
+    transition: width 0.5s ease-out;
+}
+
+.milestone-details {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+/* ==========================================================================
+   MAIN LAYOUT & CARDS
+   ========================================================================== */
+.main-layout {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 24px;
+}
+
+@media (max-width: 992px) {
+    .main-layout { grid-template-columns: 1fr; }
+}
+
+.glass-panel {
+    background: var(--bg-panel);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.panel-header h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: 0.5px;
+}
+
+.panel-header h2 i {
+    color: var(--color-orange);
+    filter: drop-shadow(0 0 5px var(--color-orange-glow));
+}
+
+/* ==========================================================================
+   INPUT FORM STYLES
+   ========================================================================== */
+#record-form {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 480px) {
+    .form-row { grid-template-columns: 1fr; }
+}
+
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+
+label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+label i { color: var(--color-cyan); }
+
+input[type="number"],
+input[type="date"],
+select,
+textarea {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--color-orange);
+    box-shadow: 0 0 0 3px rgba(255, 106, 0, 0.15);
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.input-with-helper { position: relative; }
+
+.input-helper-text {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.75rem;
+    color: var(--color-cyan);
+    font-weight: 500;
+    min-height: 18px;
+}
+
+.form-toggle-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.15);
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.toggle-title {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.toggle-buttons {
+    display: flex;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.toggle-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 6px 16px;
+    font-size: 0.8rem;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s ease;
+}
+
+.toggle-btn.active {
+    background: var(--color-orange);
+    color: #fff;
+    box-shadow: 0 0 10px var(--color-orange-glow);
+}
+
+.quick-rank-select {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: -6px;
+}
+
+.quick-label { font-size: 0.75rem; color: var(--text-muted); }
+
+.btn-quick-lp {
+    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-quick-lp:hover {
+    border-color: var(--color-cyan);
+    color: var(--color-cyan);
+    background: rgba(0, 240, 255, 0.05);
+}
+
+.inputs-group {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    animation: fadeIn 0.3s ease;
+}
+
+.hidden { display: none !important; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   BUTTON STYLES
+   ========================================================================== */
+.btn {
+    border: none;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--color-orange) 0%, #e65c00 100%);
+    color: #fff;
+    box-shadow: 0 4px 15px var(--color-orange-glow);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 106, 0, 0.5);
+    filter: brightness(1.1);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--border-hover);
+}
+
+.btn-sm { padding: 6px 12px; font-size: 0.8rem; border-radius: var(--radius-sm); }
+.btn-block { width: 100%; padding: 14px 20px; font-size: 1rem; }
+.btn:active { transform: translateY(1px); }
+
+/* ==========================================================================
+   CHART SECTION
+   ========================================================================== */
+.chart-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.chart-tabs {
+    display: flex;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 4px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.tab-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+}
+
+.tab-btn.active {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--color-cyan);
+    box-shadow: inset 0 0 10px rgba(0, 240, 255, 0.1);
+}
+
+.chart-container {
+    padding: 24px;
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    min-height: 340px;
+}
+
+canvas { width: 100% !important; height: 100% !important; }
+
+/* ==========================================================================
+   HISTORY TABLE SECTION
+   ========================================================================== */
+.table-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.filter-select {
+    padding: 8px 12px;
+    background: rgba(0,0,0,0.2);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.table-container {
+    padding: 0;
+    overflow-x: auto;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.9rem;
+}
+
+.history-table th,
+.history-table td {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.history-table th {
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.history-table tbody tr { transition: background-color 0.2s; }
+.history-table tbody tr:hover { background-color: rgba(255, 255, 255, 0.015); }
+.history-table td { color: var(--text-primary); }
+
+.history-table .rank-cell-content { display: flex; align-items: center; gap: 8px; }
+.history-table .char-cell { font-weight: 600; }
+
+.history-table .mode-badge {
+    font-size: 0.75rem;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
+.mode-badge.lr { background: rgba(255, 106, 0, 0.1); color: var(--color-orange); border: 1px solid rgba(255, 106, 0, 0.2); }
+.mode-badge.mr { background: rgba(124, 58, 237, 0.1); color: #a78bfa; border: 1px solid rgba(124, 58, 237, 0.2); }
+.mode-badge.cm { background: rgba(0, 200, 100, 0.1); color: #4ade80; border: 1px solid rgba(0, 200, 100, 0.2); }
+
+.history-table .diff-cell { font-family: var(--font-heading); font-weight: 700; }
+.history-table .diff-cell.plus { color: var(--color-cyan); }
+.history-table .diff-cell.minus { color: #ef4444; }
+
+.history-table .memo-cell {
+    color: var(--text-secondary);
+    max-width: 280px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.history-table .action-cell { display: flex; justify-content: center; gap: 8px; }
+
+.btn-action {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.95rem;
+    padding: 6px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.btn-action.edit { color: var(--text-secondary); }
+.btn-action.edit:hover { color: var(--color-cyan); background: rgba(0, 240, 255, 0.08); }
+.btn-action.delete { color: var(--text-muted); }
+.btn-action.delete:hover { color: #ef4444; background: rgba(239, 68, 68, 0.08); }
+
+.empty-state { text-align: center; padding: 48px !important; color: var(--text-muted); font-style: italic; }
+
+/* ==========================================================================
+   TOAST NOTIFICATIONS
+   ========================================================================== */
+.toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: #1f2937;
+    color: #fff;
+    padding: 14px 24px;
+    border-radius: var(--radius-md);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    border-left: 4px solid var(--color-orange);
+    z-index: 1000;
+    font-weight: 500;
+    animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+/* ==========================================================================
+   RANK BADGES
+   ========================================================================== */
+.rank-badge-inline {
+    width: 24px; height: 24px;
+    display: inline-flex;
+    justify-content: center; align-items: center;
+    font-weight: bold;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+}
+
+.rb-rookie   { background: var(--rank-rookie); }
+.rb-iron     { background: var(--rank-iron); }
+.rb-bronze   { background: var(--rank-bronze); }
+.rb-silver   { background: var(--rank-silver); }
+.rb-gold     { background: var(--rank-gold); color: #000; text-shadow: none; }
+.rb-platinum { background: var(--rank-platinum); }
+.rb-diamond  { background: var(--rank-diamond); }
+.rb-master   { background: var(--rank-master); }
+
+/* Edit modal */
+.modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 500;
+    display: flex; justify-content: center; align-items: center;
+}
+
+.modal-box {
+    background: var(--bg-panel-solid);
+    border: 1px solid var(--border-hover);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    width: 90%; max-width: 480px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+
+.modal-box h3 {
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    color: var(--color-orange);
+}
+
+.modal-actions { display: flex; gap: 12px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+<div class="app-container">
+
+    <!-- HEADER -->
+    <header class="app-header">
+        <div class="logo-area">
+            <div class="logo-icon">⚡</div>
+            <div class="logo-text">
+                <h1>SF6 LP TRACKER</h1>
+                <p>ランクマッチ成績管理ツール</p>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a class="btn btn-secondary btn-sm" href="https://www.streetfighter.com/6/ja-jp" target="_blank" rel="noopener">
+                <i class="fas fa-globe"></i> SF6公式サイト
+            </a>
+            <button class="btn btn-secondary btn-sm" onclick="exportCSV()">
+                <i class="fas fa-download"></i> CSV出力
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="openDateClearModal()">
+                <i class="fas fa-calendar-times"></i> 期間クリア
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="clearAllData()">
+                <i class="fas fa-trash"></i> リセット
+            </button>
+        </div>
+    </header>
+
+    <!-- DASHBOARD -->
+    <section class="dashboard-summary">
+        <!-- 現在ランク -->
+        <div class="stat-card">
+            <div class="card-glow"></div>
+            <div class="card-content">
+                <span class="card-label"><i class="fas fa-shield-halved"></i> 現在のランク</span>
+                <div class="rank-badge-container">
+                    <div class="rank-badge-placeholder" id="current-rank-icon">—</div>
+                    <div class="rank-info-text">
+                        <h2 id="current-rank-name">記録なし</h2>
+                        <p id="current-lp-display">— LP</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 本日のLP変動 -->
+        <div class="stat-card">
+            <div class="card-glow"></div>
+            <div class="card-content">
+                <span class="card-label"><i class="fas fa-chart-line"></i> 本日のLP変動</span>
+                <div class="progress-val-container">
+                    <span class="diff-value zero" id="today-diff">0</span>
+                    <span class="diff-unit">LP</span>
+                </div>
+                <div class="card-subtext" id="today-sessions">本日 0 セッション</div>
+            </div>
+        </div>
+
+        <!-- 総合成績 -->
+        <div class="stat-card">
+            <div class="card-glow"></div>
+            <div class="card-content">
+                <span class="card-label"><i class="fas fa-trophy"></i> 総合LP変動</span>
+                <div class="milestone-body">
+                    <div class="progress-val-container">
+                        <span class="diff-value zero" id="total-diff">0</span>
+                        <span class="diff-unit">LP</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="rank-progress-bar" style="width:0%"></div>
+                    </div>
+                    <div class="milestone-details">
+                        <span id="rank-progress-label">次のランクまで</span>
+                        <span id="rank-progress-pct">0%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MAIN LAYOUT -->
+    <div class="main-layout">
+
+        <!-- LEFT: 入力フォーム -->
+        <div class="glass-panel">
+            <div class="panel-header">
+                <h2><i class="fas fa-plus-circle"></i> 対戦結果を記録</h2>
+            </div>
+            <div id="record-form">
+                <!-- モード切替 -->
+                <div class="form-toggle-container">
+                    <span class="toggle-title"><i class="fas fa-gamepad"></i> モード</span>
+                    <div class="toggle-buttons">
+                        <button class="toggle-btn active" id="btn-lr" onclick="setMode('LR')">LR</button>
+                        <button class="toggle-btn" id="btn-mr" onclick="setMode('MR')">MR</button>
+                        <button class="toggle-btn" id="btn-cm" onclick="setMode('CM')">カスタム</button>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar"></i> 日付</label>
+                        <input type="date" id="input-date">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> キャラクター</label>
+                        <select id="input-char">
+                            <option value="">選択してください</option>
+                            <optgroup label="ベースロスター">
+                              <option>リュウ</option><option>ルーク</option><option>ジェイミー</option>
+                              <option>春麗</option><option>ガイル</option><option>キンバリー</option>
+                              <option>ジュリ</option><option>ケン</option><option>ブランカ</option>
+                              <option>ダルシム</option><option>エドモンド本田</option><option>ディージェイ</option>
+                              <option>マノン</option><option>マリーザ</option><option>ＪＰ</option>
+                              <option>ザンギエフ</option><option>リリー</option><option>キャミィ</option>
+                            </optgroup>
+                            <optgroup label="Year 1 DLC">
+                              <option>ラシード</option><option>A.K.I.</option><option>エド</option><option>豪鬼</option>
+                            </optgroup>
+                            <optgroup label="Year 2 DLC">
+                              <option>ベガ</option><option>テリー</option><option>舞</option><option>エレナ</option>
+                            </optgroup>
+                            <optgroup label="Year 3 DLC">
+                              <option>サガット</option><option>C.ヴァイパー</option><option>アレックス</option><option>イングリッド</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="rank-lp-section">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-shield-alt"></i> 現在のランク</label>
+                        <select id="input-rank">
+                            <option value="">選択</option>
+                            <option value="rookie">Rookie</option>
+                            <option value="iron">Iron</option>
+                            <option value="bronze">Bronze</option>
+                            <option value="silver">Silver</option>
+                            <option value="gold">Gold</option>
+                            <option value="platinum">Platinum</option>
+                            <option value="diamond">Diamond</option>
+                            <option value="master">Master</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-star"></i> 現在のLP</label>
+                        <div class="input-with-helper">
+                            <input type="number" id="input-lp" placeholder="例: 12500" min="0">
+                            <span class="input-helper-text" id="lp-diff-preview"></span>
+                        </div>
+                    </div>
+                </div>
+                </div>
+
+                <!-- クイックLP差分 -->
+                <div class="quick-rank-select" id="quick-section">
+                    <span class="quick-label">クイック入力:</span>
+                    <button class="btn-quick-lp" onclick="addQuickLP(50)">+50</button>
+                    <button class="btn-quick-lp" onclick="addQuickLP(100)">+100</button>
+                    <button class="btn-quick-lp" onclick="addQuickLP(200)">+200</button>
+                    <button class="btn-quick-lp" onclick="addQuickLP(-50)">-50</button>
+                    <button class="btn-quick-lp" onclick="addQuickLP(-100)">-100</button>
+                    <button class="btn-quick-lp" onclick="addQuickLP(-200)">-200</button>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-comment"></i> メモ（任意）</label>
+                    <textarea id="input-memo" rows="2" placeholder="対戦メモ、反省点など..."></textarea>
+                </div>
+
+                <!-- カスタムマッチ専用フィールド -->
+                <div id="cm-fields" class="inputs-group hidden">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-user-ninja"></i> 対戦相手キャラ</label>
+                            <select id="input-opponent">
+                                <option value="">選択してください</option>
+                                <optgroup label="ベースロスター">
+                                  <option>リュウ</option><option>ルーク</option><option>ジェイミー</option>
+                                  <option>春麗</option><option>ガイル</option><option>キンバリー</option>
+                                  <option>ジュリ</option><option>ケン</option><option>ブランカ</option>
+                                  <option>ダルシム</option><option>エドモンド本田</option><option>ディージェイ</option>
+                                  <option>マノン</option><option>マリーザ</option><option>ＪＰ</option>
+                                  <option>ザンギエフ</option><option>リリー</option><option>キャミィ</option>
+                                </optgroup>
+                                <optgroup label="Year 1 DLC">
+                                  <option>ラシード</option><option>A.K.I.</option><option>エド</option><option>豪鬼</option>
+                                </optgroup>
+                                <optgroup label="Year 2 DLC">
+                                  <option>ベガ</option><option>テリー</option><option>舞</option><option>エレナ</option>
+                                </optgroup>
+                                <optgroup label="Year 3 DLC">
+                                  <option>サガット</option><option>C.ヴァイパー</option><option>アレックス</option><option>イングリッド</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-flag"></i> 勝敗（勝ち / 負け 数）</label>
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                <input type="number" id="input-cm-win" placeholder="勝" min="0" value="0" style="width:100%;">
+                                <span style="color:var(--text-secondary); font-weight:700; white-space:nowrap;">勝 /</span>
+                                <input type="number" id="input-cm-lose" placeholder="負" min="0" value="0" style="width:100%;">
+                                <span style="color:var(--text-secondary); font-weight:700; white-space:nowrap;">負</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary btn-block" onclick="saveRecord()">
+                    <i class="fas fa-save"></i> 記録を保存
+                </button>
+            </div>
+        </div>
+
+        <!-- RIGHT: チャート -->
+        <div class="glass-panel">
+            <div class="panel-header">
+                <div class="chart-header-row">
+                    <h2 id="chart-title"><i class="fas fa-chart-area"></i> LP推移グラフ</h2>
+                    <div id="lp-chart-tabs" class="chart-tabs">
+                        <button class="tab-btn active" onclick="setChartRange('all', this)">全期間</button>
+                        <button class="tab-btn" onclick="setChartRange('30', this)">30日</button>
+                        <button class="tab-btn" onclick="setChartRange('7', this)">7日</button>
+                    </div>
+                    <div id="cm-chart-tabs" class="chart-tabs hidden">
+                        <button class="tab-btn cm-tab active" onclick="setCMChartView('winrate', this)">日付別</button>
+                        <button class="tab-btn cm-tab" onclick="setCMChartView('opponent', this)">相手別</button>
+                    </div>
+                </div>
+                <div id="cm-summary" style="font-family:var(--font-heading); font-size:1rem; display:flex; align-items:center; gap:4px; margin-top:8px;"></div>
+            </div>
+            <div class="chart-container">
+                <canvas id="lp-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- HISTORY TABLE -->
+    <div class="glass-panel">
+        <div class="panel-header">
+            <div class="table-header-row">
+                <h2><i class="fas fa-history"></i> 対戦履歴</h2>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <select class="filter-select" id="filter-char" onchange="renderTable()">
+                        <option value="">全キャラ</option>
+                    </select>
+                    <select class="filter-select" id="filter-mode" onchange="renderTable()">
+                        <option value="">全モード</option>
+                        <option value="LR">LR</option>
+                        <option value="MR">MR</option>
+                        <option value="CM">カスタム</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="table-container">
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>日付</th>
+                        <th>キャラ</th>
+                        <th>モード</th>
+                        <th>ランク</th>
+                        <th>LP</th>
+                        <th>変動</th>
+                        <th>メモ</th>
+                        <th style="text-align:center;">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="history-tbody">
+                    <tr><td class="empty-state" colspan="8">記録がありません。最初の対戦を記録しましょう！</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- DATE RANGE CLEAR MODAL -->
+<div class="modal-overlay hidden" id="date-clear-modal">
+    <div class="modal-box">
+        <h3><i class="fas fa-calendar-times"></i> 期間を指定してクリア</h3>
+        <div class="form-group" style="margin-bottom:12px;">
+            <label><i class="fas fa-calendar"></i> 開始日</label>
+            <input type="date" id="clear-date-from">
+        </div>
+        <div class="form-group" style="margin-bottom:12px;">
+            <label><i class="fas fa-calendar"></i> 終了日</label>
+            <input type="date" id="clear-date-to">
+        </div>
+        <div id="clear-preview" style="font-size:0.85rem; color:var(--color-cyan); margin-bottom:12px; min-height:20px;"></div>
+        <div class="modal-actions">
+            <button class="btn btn-primary" style="flex:1; background:linear-gradient(135deg,#ef4444,#b91c1c);" onclick="execDateClear()"><i class="fas fa-trash"></i> 削除する</button>
+            <button class="btn btn-secondary" style="flex:1" onclick="closeDateClearModal()"><i class="fas fa-times"></i> キャンセル</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay hidden" id="edit-modal">
+    <div class="modal-box">
+        <h3><i class="fas fa-edit"></i> 記録を編集</h3>
+        <input type="hidden" id="edit-id">
+        <div class="form-group" style="margin-bottom:12px;" id="edit-lp-group">
+            <label><i class="fas fa-star"></i> LP</label>
+            <input type="number" id="edit-lp" min="0">
+        </div>
+        <div class="form-group" style="margin-bottom:12px; display:none;" id="edit-cm-group">
+            <label><i class="fas fa-flag"></i> 勝敗（勝ち / 負け 数）</label>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <input type="number" id="edit-cm-win" min="0" value="0" style="width:100%;">
+                <span style="color:var(--text-secondary); font-weight:700; white-space:nowrap;">勝 /</span>
+                <input type="number" id="edit-cm-lose" min="0" value="0" style="width:100%;">
+                <span style="color:var(--text-secondary); font-weight:700; white-space:nowrap;">負</span>
+            </div>
+        </div>
+        <div class="form-group" style="margin-bottom:12px;">
+            <label><i class="fas fa-comment"></i> メモ</label>
+            <textarea id="edit-memo" rows="2"></textarea>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-primary" style="flex:1" onclick="saveEdit()"><i class="fas fa-check"></i> 保存</button>
+            <button class="btn btn-secondary" style="flex:1" onclick="closeModal()"><i class="fas fa-times"></i> キャンセル</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// =====================================================================
+// DATA LAYER
+// =====================================================================
+const STORAGE_KEY = 'sf6_lp_tracker_v1';
+
+function loadRecords() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { return []; }
+}
+function saveRecords(records) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+}
+
+// =====================================================================
+// STATE
+// =====================================================================
+let records = loadRecords();
+let currentMode = 'LR';
+let currentResult = 'WIN';
+let chartInstance = null;
+let chartRange = 'all';
+let cmChartView = 'winrate';
+let editingId = null;
+
+// =====================================================================
+// RANK UTILS
+// =====================================================================
+const RANK_ORDER = ['rookie','iron','bronze','silver','gold','platinum','diamond','master'];
+const RANK_LABELS = {
+    rookie:'Rookie', iron:'Iron', bronze:'Bronze', silver:'Silver',
+    gold:'Gold', platinum:'Platinum', diamond:'Diamond', master:'Master'
+};
+const RANK_EMOJIS = {
+    rookie:'🔘', iron:'🟫', bronze:'🥉', silver:'🥈',
+    gold:'🥇', platinum:'💎', diamond:'💠', master:'👑'
+};
+const RANK_NEXT_LP = {
+    rookie:1000, iron:3000, bronze:6000, silver:10000,
+    gold:15000, platinum:21000, diamond:28000, master:null
+};
+function getRankClass(rank) { return `rb-${rank}`; }
+
+// =====================================================================
+// FORM INIT
+// =====================================================================
+document.getElementById('input-date').value = new Date().toISOString().split('T')[0];
+
+function updateLPPreview() {
+    const lp = parseInt(document.getElementById('input-lp').value);
+    if (isNaN(lp)) { document.getElementById('lp-diff-preview').textContent = ''; return; }
+    const char = document.getElementById('input-char').value;
+    const last = char ? getLastLPForChar(char) : getLastLP();
+    if (last === null) { document.getElementById('lp-diff-preview').textContent = ''; return; }
+    const diff = lp - last;
+    const sign = diff >= 0 ? '+' : '';
+    document.getElementById('lp-diff-preview').textContent = `前回比: ${sign}${diff} LP`;
+}
+
+function getLastLP() {
+    const lpRecs = records.filter(r => r.lp != null);
+    if (lpRecs.length === 0) return null;
+    return lpRecs[lpRecs.length - 1].lp;
+}
+
+function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('btn-lr').classList.toggle('active', mode === 'LR');
+    document.getElementById('btn-mr').classList.toggle('active', mode === 'MR');
+    document.getElementById('btn-cm').classList.toggle('active', mode === 'CM');
+
+    const isCM = mode === 'CM';
+    document.getElementById('rank-lp-section').classList.toggle('hidden', isCM);
+    document.getElementById('quick-section').classList.toggle('hidden', isCM);
+    document.getElementById('cm-fields').classList.toggle('hidden', !isCM);
+
+    // チャート切替
+    document.getElementById('lp-chart-tabs').classList.toggle('hidden', isCM);
+    document.getElementById('cm-chart-tabs').classList.toggle('hidden', !isCM);
+    const titleEl = document.getElementById('chart-title');
+    if (isCM) {
+        titleEl.innerHTML = '<i class="fas fa-chart-bar"></i> カスタムマッチ勝率';
+    } else {
+        titleEl.innerHTML = '<i class="fas fa-chart-area"></i> LP推移グラフ';
+    }
+    renderChart();
+}
+
+function setResult(result) {
+    currentResult = result;
+    document.getElementById('btn-win').classList.toggle('active', result === 'WIN');
+    document.getElementById('btn-lose').classList.toggle('active', result === 'LOSE');
+}
+
+function addQuickLP(delta) {
+    const input = document.getElementById('input-lp');
+    const current = parseInt(input.value) || 0;
+    input.value = Math.max(0, current + delta);
+    updateLPPreview();
+}
+
+// =====================================================================
+// RANK AUTO-DETECT FROM LP
+// =====================================================================
+const LP_RANK_THRESHOLDS = [
+    { rank: 'rookie',   min: 0,     max: 999 },
+    { rank: 'iron',     min: 1000,  max: 2999 },
+    { rank: 'bronze',   min: 3000,  max: 5999 },
+    { rank: 'silver',   min: 6000,  max: 9999 },
+    { rank: 'gold',     min: 10000, max: 14999 },
+    { rank: 'platinum', min: 15000, max: 20999 },
+    { rank: 'diamond',  min: 21000, max: 27999 },
+    { rank: 'master',   min: 28000, max: Infinity },
+];
+
+function getRankFromLP(lp) {
+    const found = LP_RANK_THRESHOLDS.find(r => lp >= r.min && lp <= r.max);
+    return found ? found.rank : null;
+}
+
+// =====================================================================
+// CHAR LP MEMORY (per-char last LP for LR/MR)
+// =====================================================================
+const CHAR_LP_KEY = 'sf6_char_lp_memory';
+function loadCharLPMemory() {
+    try { return JSON.parse(localStorage.getItem(CHAR_LP_KEY)) || {}; }
+    catch { return {}; }
+}
+function saveCharLPMemory(mem) {
+    localStorage.setItem(CHAR_LP_KEY, JSON.stringify(mem));
+}
+let charLPMemory = loadCharLPMemory();
+
+function onCharChange() {
+    const char = document.getElementById('input-char').value;
+    if (!char || currentMode === 'CM') return;
+    const mem = charLPMemory[char];
+    if (mem != null) {
+        document.getElementById('input-lp').value = mem;
+        // auto-detect rank
+        const rank = getRankFromLP(mem);
+        if (rank) document.getElementById('input-rank').value = rank;
+        updateLPPreview();
+    } else {
+        document.getElementById('input-lp').value = '';
+        document.getElementById('input-rank').value = '';
+        updateLPPreview();
+    }
+}
+
+document.getElementById('input-char').addEventListener('change', onCharChange);
+
+// LP input → auto rank
+document.getElementById('input-lp').addEventListener('input', function() {
+    updateLPPreview();
+    const lp = parseInt(this.value);
+    if (!isNaN(lp) && currentMode !== 'CM') {
+        const rank = getRankFromLP(lp);
+        if (rank) document.getElementById('input-rank').value = rank;
+    }
+});
+
+// =====================================================================
+// SAVE RECORD
+// =====================================================================
+function saveRecord() {
+    const date  = document.getElementById('input-date').value;
+    const char  = document.getElementById('input-char').value;
+    const rank  = document.getElementById('input-rank').value;
+    const lp    = parseInt(document.getElementById('input-lp').value);
+    const memo  = document.getElementById('input-memo').value.trim();
+
+    if (!date || !char) {
+        showToast('⚠️ 日付・キャラは必須です', '#ef4444'); return;
+    }
+
+    if (currentMode === 'CM') {
+        const win  = parseInt(document.getElementById('input-cm-win').value) || 0;
+        const lose = parseInt(document.getElementById('input-cm-lose').value) || 0;
+        if (win === 0 && lose === 0) {
+            showToast('⚠️ 勝敗数を入力してください', '#ef4444'); return;
+        }
+        // Save one record per game
+        const totalGames = win + lose;
+        let saved = 0;
+        for (let i = 0; i < win; i++) {
+            records.push({ id: Date.now() + saved++, date, char, rank: 'custom', lp: null, diff: 0, memo, mode: 'CM', result: 'WIN', opponent: document.getElementById('input-opponent').value || null });
+        }
+        for (let i = 0; i < lose; i++) {
+            records.push({ id: Date.now() + saved++, date, char, rank: 'custom', lp: null, diff: 0, memo, mode: 'CM', result: 'LOSE', opponent: document.getElementById('input-opponent').value || null });
+        }
+        saveRecords(records);
+        showToast(`✅ カスタムマッチ ${win}勝${lose}敗 を保存しました！`);
+        document.getElementById('input-cm-win').value = '0';
+        document.getElementById('input-cm-lose').value = '0';
+        document.getElementById('input-opponent').value = '';
+        document.getElementById('input-memo').value = '';
+    } else {
+        if (!rank || isNaN(lp)) {
+            showToast('⚠️ ランク・LPを入力してください', '#ef4444'); return;
+        }
+        const last = getLastLPForChar(char);
+        const diff = last !== null ? lp - last : 0;
+        records.push({ id: Date.now(), date, char, rank, lp, diff, memo, mode: currentMode, result: null, opponent: null });
+        // Save to char memory
+        charLPMemory[char] = lp;
+        saveCharLPMemory(charLPMemory);
+        saveRecords(records);
+        showToast('✅ 記録を保存しました！');
+        document.getElementById('input-memo').value = '';
+        document.getElementById('lp-diff-preview').textContent = '';
+        // Keep LP & rank for convenience (user can update next match)
+    }
+    updateAll();
+}
+
+function getLastLPForChar(char) {
+    const recs = records.filter(r => r.char === char && r.lp != null);
+    return recs.length > 0 ? recs[recs.length - 1].lp : null;
+}
+
+// =====================================================================
+// UPDATE UI
+// =====================================================================
+function updateAll() {
+    updateDashboard();
+    renderChart();
+    renderTable();
+    updateCharFilter();
+}
+
+function updateDashboard() {
+    const lpRecs = records.filter(r => r.lp != null);
+    if (lpRecs.length === 0 && records.length === 0) {
+        document.getElementById('current-rank-name').textContent = '記録なし';
+        document.getElementById('current-lp-display').textContent = '— LP';
+        document.getElementById('current-rank-icon').textContent = '—';
+        document.getElementById('today-diff').textContent = '0';
+        document.getElementById('today-diff').className = 'diff-value zero';
+        document.getElementById('total-diff').textContent = '0';
+        document.getElementById('total-diff').className = 'diff-value zero';
+        document.getElementById('today-sessions').textContent = '本日 0 セッション';
+        document.getElementById('rank-progress-bar').style.width = '0%';
+        document.getElementById('rank-progress-pct').textContent = '0%';
+        return;
+    }
+
+    const last = lpRecs.length > 0 ? lpRecs[lpRecs.length - 1] : null;
+    if (last) {
+        document.getElementById('current-rank-name').textContent = RANK_LABELS[last.rank] || last.rank;
+        document.getElementById('current-lp-display').textContent = `${last.lp.toLocaleString()} LP`;
+        document.getElementById('current-rank-icon').textContent = RANK_EMOJIS[last.rank] || '—';
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const todayRecs = records.filter(r => r.date === today);
+    const todaySum = todayRecs.reduce((s, r) => s + (r.diff || 0), 0);
+    const tdEl = document.getElementById('today-diff');
+    tdEl.textContent = (todaySum >= 0 ? '+' : '') + todaySum;
+    tdEl.className = 'diff-value ' + (todaySum > 0 ? 'up' : todaySum < 0 ? 'down' : 'zero');
+    document.getElementById('today-sessions').textContent = `本日 ${todayRecs.length} セッション`;
+
+    const totalSum = records.reduce((s, r) => s + (r.diff || 0), 0);
+    const ttEl = document.getElementById('total-diff');
+    ttEl.textContent = (totalSum >= 0 ? '+' : '') + totalSum;
+    ttEl.className = 'diff-value ' + (totalSum > 0 ? 'up' : totalSum < 0 ? 'down' : 'zero');
+
+    if (last) {
+        const rankIdx = RANK_ORDER.indexOf(last.rank);
+        const nextLP = RANK_NEXT_LP[last.rank];
+        if (nextLP === null) {
+            document.getElementById('rank-progress-bar').style.width = '100%';
+            document.getElementById('rank-progress-pct').textContent = 'MAX';
+            document.getElementById('rank-progress-label').textContent = 'マスターランク到達！';
+        } else {
+            const prevLP = rankIdx > 0 ? (RANK_NEXT_LP[RANK_ORDER[rankIdx - 1]] || 0) : 0;
+            const pct = Math.min(100, Math.max(0, Math.round(((last.lp - prevLP) / (nextLP - prevLP)) * 100)));
+            document.getElementById('rank-progress-bar').style.width = pct + '%';
+            document.getElementById('rank-progress-pct').textContent = pct + '%';
+            document.getElementById('rank-progress-label').textContent = `次: ${RANK_LABELS[RANK_ORDER[rankIdx + 1]] || '—'} まで`;
+        }
+    }
+}
+
+// =====================================================================
+// CHART
+// =====================================================================
+function setChartRange(range, btn) {
+    chartRange = range;
+    document.querySelectorAll('#lp-chart-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderChart();
+}
+
+function setCMChartView(view, btn) {
+    cmChartView = view;
+    document.querySelectorAll('.cm-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderChart();
+}
+
+function renderChart() {
+    if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+    if (currentMode === 'CM') {
+        renderCMChart();
+    } else {
+        renderLPChart();
+    }
+}
+
+function renderLPChart() {
+    let data = [...records].filter(r => r.lp != null).sort((a, b) => a.date.localeCompare(b.date));
+    if (chartRange !== 'all') {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - parseInt(chartRange));
+        const cutoffStr = cutoff.toISOString().split('T')[0];
+        data = data.filter(r => r.date >= cutoffStr);
+    }
+    const ctx = document.getElementById('lp-chart').getContext('2d');
+    chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map(r => r.date),
+            datasets: [{
+                label: 'LP', data: data.map(r => r.lp),
+                borderColor: '#00f0ff',
+                backgroundColor: 'rgba(0, 240, 255, 0.06)',
+                pointBackgroundColor: '#ff6a00', pointBorderColor: '#ff6a00',
+                pointRadius: 5, pointHoverRadius: 7,
+                borderWidth: 2, fill: true, tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1f2937', titleColor: '#9aa0b0', bodyColor: '#f0f2f7',
+                    borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+                    callbacks: { label: ctx => ` ${ctx.parsed.y.toLocaleString()} LP` }
+                }
+            },
+            scales: {
+                x: { ticks: { color: '#626875', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+                y: { ticks: { color: '#626875', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } }
+            }
+        }
+    });
+}
+
+function renderCMChart() {
+    const cmRecs = records.filter(r => r.mode === 'CM' && r.result);
+    const ctx = document.getElementById('lp-chart').getContext('2d');
+
+    // --- サマリーバー更新 ---
+    const totalWin  = cmRecs.filter(r => r.result === 'WIN').length;
+    const totalLose = cmRecs.filter(r => r.result === 'LOSE').length;
+    const totalAll  = totalWin + totalLose;
+    const totalRate = totalAll > 0 ? Math.round((totalWin / totalAll) * 100) : 0;
+    const summaryEl = document.getElementById('cm-summary');
+    if (summaryEl) {
+        summaryEl.innerHTML = totalAll === 0 ? '' :
+            `<span style="color:#00f0ff;font-weight:700;">${totalWin}勝</span>` +
+            `<span style="color:var(--text-muted);margin:0 6px;">/</span>` +
+            `<span style="color:#ef4444;font-weight:700;">${totalLose}敗</span>` +
+            `<span style="color:var(--text-secondary);margin-left:10px;font-size:0.85rem;">勝率 ${totalRate}%</span>`;
+    }
+
+    if (cmChartView === 'winrate') {
+        // 日付別 勝ち・負け 積み上げ棒グラフ
+        const byDate = {};
+        cmRecs.forEach(r => {
+            if (!byDate[r.date]) byDate[r.date] = { win: 0, lose: 0 };
+            r.result === 'WIN' ? byDate[r.date].win++ : byDate[r.date].lose++;
+        });
+        const dates = Object.keys(byDate).sort();
+
+        if (dates.length === 0) {
+            renderEmptyChart(ctx, 'カスタムマッチの記録がありません');
+            return;
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: dates,
+                datasets: [
+                    {
+                        label: '勝ち',
+                        data: dates.map(d => byDate[d].win),
+                        backgroundColor: 'rgba(0,240,255,0.7)',
+                        borderColor: '#00f0ff',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        stack: 'stack'
+                    },
+                    {
+                        label: '負け',
+                        data: dates.map(d => byDate[d].lose),
+                        backgroundColor: 'rgba(239,68,68,0.6)',
+                        borderColor: '#ef4444',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        stack: 'stack'
+                    }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: { color: '#9aa0b0', font: { size: 12 }, boxWidth: 14 }
+                    },
+                    tooltip: {
+                        backgroundColor: '#1f2937', titleColor: '#9aa0b0', bodyColor: '#f0f2f7',
+                        borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+                        callbacks: {
+                            afterBody: (items) => {
+                                const d = dates[items[0].dataIndex];
+                                const { win, lose } = byDate[d];
+                                const t = win + lose;
+                                const rate = t > 0 ? Math.round((win / t) * 100) : 0;
+                                return [`合計: ${t}戦  勝率: ${rate}%`];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        ticks: { color: '#626875', font: { size: 11 } },
+                        grid: { color: 'rgba(255,255,255,0.04)' }
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: { color: '#626875', font: { size: 11 }, stepSize: 1 },
+                        grid: { color: 'rgba(255,255,255,0.04)' }
+                    }
+                }
+            }
+        });
+
+    } else {
+        // 対戦相手別 勝ち・負け 横積み上げ棒グラフ
+        const byOpp = {};
+        cmRecs.forEach(r => {
+            const opp = r.opponent || '不明';
+            if (!byOpp[opp]) byOpp[opp] = { win: 0, lose: 0 };
+            r.result === 'WIN' ? byOpp[opp].win++ : byOpp[opp].lose++;
+        });
+        const opps = Object.keys(byOpp).sort((a, b) => {
+            return (byOpp[b].win + byOpp[b].lose) - (byOpp[a].win + byOpp[a].lose);
+        });
+
+        if (opps.length === 0) {
+            renderEmptyChart(ctx, '対戦相手の記録がありません');
+            return;
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: opps,
+                datasets: [
+                    {
+                        label: '勝ち',
+                        data: opps.map(o => byOpp[o].win),
+                        backgroundColor: 'rgba(0,240,255,0.7)',
+                        borderColor: '#00f0ff',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        stack: 'stack'
+                    },
+                    {
+                        label: '負け',
+                        data: opps.map(o => byOpp[o].lose),
+                        backgroundColor: 'rgba(239,68,68,0.6)',
+                        borderColor: '#ef4444',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        stack: 'stack'
+                    }
+                ]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: { color: '#9aa0b0', font: { size: 12 }, boxWidth: 14 }
+                    },
+                    tooltip: {
+                        backgroundColor: '#1f2937', titleColor: '#9aa0b0', bodyColor: '#f0f2f7',
+                        borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+                        callbacks: {
+                            afterBody: (items) => {
+                                const o = opps[items[0].dataIndex];
+                                const { win, lose } = byOpp[o];
+                                const t = win + lose;
+                                const rate = t > 0 ? Math.round((win / t) * 100) : 0;
+                                return [`合計: ${t}戦  勝率: ${rate}%`];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: { color: '#626875', font: { size: 11 }, stepSize: 1 },
+                        grid: { color: 'rgba(255,255,255,0.04)' }
+                    },
+                    y: {
+                        stacked: true,
+                        ticks: { color: '#f0f2f7', font: { size: 11 } },
+                        grid: { color: 'rgba(255,255,255,0.04)' }
+                    }
+                }
+            }
+        });
+    }
+}
+
+function renderEmptyChart(ctx, msg) {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.fillStyle = '#626875';
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(msg, ctx.canvas.width / 2, ctx.canvas.height / 2);
+}
+
+// =====================================================================
+// TABLE
+// =====================================================================
+function renderTable() {
+    const filterChar = document.getElementById('filter-char').value;
+    const filterMode = document.getElementById('filter-mode').value;
+
+    let filtered = [...records].reverse();
+    if (filterChar) filtered = filtered.filter(r => r.char === filterChar);
+    if (filterMode) filtered = filtered.filter(r => r.mode === filterMode);
+
+    const tbody = document.getElementById('history-tbody');
+    // ヘッダー切替
+    const thead = document.querySelector('.history-table thead tr');
+    const showCM = filterMode === 'CM';
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td class="empty-state" colspan="8">記録がありません</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = filtered.map(r => {
+        const diffClass = r.diff > 0 ? 'plus' : r.diff < 0 ? 'minus' : '';
+        const diffText  = r.mode === 'CM' ? '—' : (r.diff > 0 ? `+${r.diff}` : `${r.diff}`);
+        const lpText    = r.mode === 'CM' ? '—' : (r.lp != null ? r.lp.toLocaleString() : '—');
+        const rankText  = r.mode === 'CM' ? '—' : (RANK_LABELS[r.rank] || r.rank);
+        const rankBadge = r.mode === 'CM' ? '' : `<span class="rank-badge-inline ${getRankClass(r.rank)}">${(RANK_LABELS[r.rank]||'C').charAt(0)}</span>`;
+        const modeClass = r.mode === 'LR' ? 'lr' : r.mode === 'MR' ? 'mr' : 'cm';
+        const resultBadge = r.mode === 'CM' && r.result
+            ? `<span class="mode-badge" style="${r.result==='WIN'?'background:rgba(0,240,255,0.1);color:#00f0ff;border:1px solid rgba(0,240,255,0.2)':'background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.2)'}">${r.result==='WIN'?'勝':'負'}</span>`
+            : '';
+        const opponentText = r.mode === 'CM' ? (r.opponent || '—') : '—';
+
+        return `
+        <tr>
+            <td>${r.date}</td>
+            <td class="char-cell">${r.char}</td>
+            <td><span class="mode-badge ${modeClass}">${r.mode}</span></td>
+            <td><div class="rank-cell-content">${rankBadge}${rankText}</div></td>
+            <td>${lpText}</td>
+            <td class="diff-cell ${diffClass}">${r.mode === 'CM' ? resultBadge : diffText}</td>
+            <td>${r.mode === 'CM' ? opponentText : '<span style="color:var(--text-muted)">—</span>'}</td>
+            <td class="memo-cell">${r.memo || '—'}</td>
+            <td class="action-cell">
+                <button class="btn-action edit" onclick="openEdit(${r.id})" title="編集"><i class="fas fa-pencil"></i></button>
+                <button class="btn-action delete" onclick="deleteRecord(${r.id})" title="削除"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function updateCharFilter() {
+    const chars = [...new Set(records.map(r => r.char))].sort();
+    const sel = document.getElementById('filter-char');
+    const current = sel.value;
+    sel.innerHTML = '<option value="">全キャラ</option>' + chars.map(c => `<option value="${c}">${c}</option>`).join('');
+    sel.value = current;
+}
+
+// =====================================================================
+// EDIT / DELETE
+// =====================================================================
+function openEdit(id) {
+    const r = records.find(r => r.id === id);
+    if (!r) return;
+    editingId = id;
+    const isCM = r.mode === 'CM';
+    document.getElementById('edit-lp-group').style.display = isCM ? 'none' : '';
+    document.getElementById('edit-cm-group').style.display = isCM ? '' : 'none';
+    document.getElementById('edit-lp').value = r.lp ?? '';
+    // For CM, count wins/loses from this specific record's session (single record)
+    document.getElementById('edit-cm-win').value = (isCM && r.result === 'WIN') ? 1 : 0;
+    document.getElementById('edit-cm-lose').value = (isCM && r.result === 'LOSE') ? 1 : 0;
+    document.getElementById('edit-memo').value = r.memo;
+    document.getElementById('edit-modal').classList.remove('hidden');
+}
+
+function saveEdit() {
+    const id = editingId;
+    const memo = document.getElementById('edit-memo').value.trim();
+    const idx = records.findIndex(r => r.id === id);
+    if (idx === -1) return;
+    const isCM = records[idx].mode === 'CM';
+    if (isCM) {
+        const win = parseInt(document.getElementById('edit-cm-win').value) || 0;
+        const lose = parseInt(document.getElementById('edit-cm-lose').value) || 0;
+        if (win + lose === 0) { showToast('⚠️ 勝敗数を入力してください', '#ef4444'); return; }
+        // Update result based on whichever is higher; if mixed, keep as is but update memo
+        records[idx].result = win >= lose ? 'WIN' : 'LOSE';
+        records[idx].memo = memo;
+    } else {
+        const lp = parseInt(document.getElementById('edit-lp').value);
+        if (isNaN(lp)) { showToast('⚠️ LPを入力してください', '#ef4444'); return; }
+        records[idx].lp = lp;
+        records[idx].memo = memo;
+        // Auto-update rank
+        const rank = getRankFromLP(lp);
+        if (rank) records[idx].rank = rank;
+        // Update char memory
+        charLPMemory[records[idx].char] = lp;
+        saveCharLPMemory(charLPMemory);
+    }
+    recalcDiffs();
+    saveRecords(records);
+    closeModal();
+    updateAll();
+    showToast('✏️ 記録を更新しました');
+}
+
+function closeModal() {
+    document.getElementById('edit-modal').classList.add('hidden');
+    editingId = null;
+}
+
+document.getElementById('edit-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+});
+
+function deleteRecord(id) {
+    if (!confirm('この記録を削除しますか？')) return;
+    records = records.filter(r => r.id !== id);
+    recalcDiffs();
+    saveRecords(records);
+    updateAll();
+    showToast('🗑️ 記録を削除しました');
+}
+
+function recalcDiffs() {
+    for (let i = 0; i < records.length; i++) {
+        if (records[i].mode === 'CM') { records[i].diff = 0; continue; }
+        const prevLP = (() => {
+            for (let j = i - 1; j >= 0; j--) {
+                if (records[j].lp != null) return records[j].lp;
+            }
+            return null;
+        })();
+        records[i].diff = prevLP !== null ? records[i].lp - prevLP : 0;
+    }
+}
+
+// =====================================================================
+// EXPORT CSV
+// =====================================================================
+function exportCSV() {
+    if (records.length === 0) { showToast('⚠️ 記録がありません', '#ef4444'); return; }
+    const header = '日付,キャラ,モード,ランク,LP,変動/勝敗,対戦相手,メモ';
+    const rows = records.map(r =>
+        `${r.date},${r.char},${r.mode},${r.mode==='CM'?'—':(RANK_LABELS[r.rank]||r.rank)},${r.lp??'—'},${r.mode==='CM'?(r.result||'—'):r.diff},${r.opponent||'—'},"${r.memo}"`
+    );
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'sf6_lp_records.csv'; a.click();
+    URL.revokeObjectURL(url);
+    showToast('📥 CSVをダウンロードしました');
+}
+
+function clearAllData() {
+    if (!confirm('全ての記録を削除しますか？この操作は元に戻せません。')) return;
+    records = [];
+    saveRecords(records);
+    updateAll();
+    showToast('🗑️ 全データを削除しました');
+}
+
+// =====================================================================
+// TOAST
+// =====================================================================
+function showToast(msg, color = '#ff6a00') {
+    const existing = document.querySelector('.toast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.style.borderLeftColor = color;
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3100);
+}
+
+// =====================================================================
+// DATE RANGE CLEAR
+// =====================================================================
+function openDateClearModal() {
+    document.getElementById('date-clear-modal').classList.remove('hidden');
+    document.getElementById('clear-date-from').value = '';
+    document.getElementById('clear-date-to').value = '';
+    document.getElementById('clear-preview').textContent = '';
+    ['clear-date-from', 'clear-date-to'].forEach(id => {
+        document.getElementById(id).addEventListener('input', updateClearPreview);
+    });
+}
+
+function updateClearPreview() {
+    const from = document.getElementById('clear-date-from').value;
+    const to = document.getElementById('clear-date-to').value;
+    if (!from && !to) { document.getElementById('clear-preview').textContent = ''; return; }
+    const count = records.filter(r => {
+        if (from && r.date < from) return false;
+        if (to && r.date > to) return false;
+        return true;
+    }).length;
+    document.getElementById('clear-preview').textContent = `対象: ${count} 件`;
+}
+
+function execDateClear() {
+    const from = document.getElementById('clear-date-from').value;
+    const to = document.getElementById('clear-date-to').value;
+    const before = records.length;
+    records = records.filter(r => {
+        if (from && r.date < from) return true;
+        if (to && r.date > to) return true;
+        return false;
+    });
+    const removed = before - records.length;
+    if (removed === 0) { showToast('⚠️ 対象の記録がありません', '#ef4444'); return; }
+    recalcDiffs();
+    saveRecords(records);
+    updateAll();
+    closeDateClearModal();
+    showToast(`🗑️ ${removed} 件の記録を削除しました`);
+}
+
+function closeDateClearModal() {
+    document.getElementById('date-clear-modal').classList.add('hidden');
+}
+
+document.getElementById('date-clear-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeDateClearModal();
+});
+
+// =====================================================================
+// INIT
+// =====================================================================
+updateAll();
+</script>
+</body>
+</html>
