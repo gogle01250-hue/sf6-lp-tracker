@@ -1,0 +1,8 @@
+services:
+  sf6tracker:
+    build: .
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
