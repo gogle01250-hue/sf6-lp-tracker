@@ -1,0 +1,3860 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SF6 LP Tracker</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g1' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%2300f0ff'/%3E%3Cstop offset='100%25' stop-color='%230070ff'/%3E%3C/linearGradient%3E%3ClinearGradient id='g2' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0%25' stop-color='%23003366'/%3E%3Cstop offset='100%25' stop-color='%23001122'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='7' fill='url(%23g2)'/%3E%3Cpolygon points='16,3 20,13 30,13 22,19 25,29 16,23 7,29 10,19 2,13 12,13' fill='url(%23g1)' opacity='0.9'/%3E%3C/svg%3E">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Outfit:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+/* ==========================================================================
+   DESIGN TOKENS & SYSTEM VARIABLES
+   ========================================================================== */
+:root {
+    --bg-main: #0b0c10;
+    --bg-panel: rgba(22, 26, 35, 0.65);
+    --bg-panel-solid: #161a23;
+    --border-color: rgba(255, 255, 255, 0.07);
+    --border-hover: rgba(255, 255, 255, 0.15);
+    
+    /* SF6 Theme Colors */
+    --color-orange: #ff6a00;
+    --color-orange-glow: rgba(255, 106, 0, 0.4);
+    --color-cyan: #00f0ff;
+    --color-cyan-glow: rgba(0, 240, 255, 0.3);
+    --color-yellow: #ffcc00;
+    
+    /* Text Colors */
+    --text-primary: #f0f2f7;
+    --text-secondary: #9aa0b0;
+    --text-muted: #626875;
+    
+    /* Rank Specific Colors */
+    --rank-rookie: #808080;
+    --rank-iron: #a17455;
+    --rank-bronze: #cd7f32;
+    --rank-silver: #c0c0c0;
+    --rank-gold: #ffd700;
+    --rank-platinum: #a0b2c6;
+    --rank-diamond: #4fc3f7;
+    --rank-master: #9c27b0;
+    
+    /* Grid & Spacing */
+    --radius-lg: 16px;
+    --radius-md: 10px;
+    --radius-sm: 6px;
+    --font-heading: 'Orbitron', 'Outfit', 'Noto Sans JP', sans-serif;
+    --font-body: 'Outfit', 'Noto Sans JP', sans-serif;
+}
+
+/* ==========================================================================
+   RESET & BASE STYLES
+   ========================================================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    line-height: 1.6;
+    background-image: 
+        radial-gradient(circle at 10% 20%, rgba(255, 106, 0, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(0, 240, 255, 0.05) 0%, transparent 45%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-main); }
+::-webkit-scrollbar-thumb { background: #232a38; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #343f54; }
+
+/* ==========================================================================
+   LAYOUT STRUCTURE
+   ========================================================================== */
+.app-container {
+    max-width: 1300px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    background: var(--bg-panel);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+}
+
+.logo-area { display: flex; align-items: center; gap: 16px; }
+
+.logo-icon {
+    font-size: 2.2rem;
+    background: linear-gradient(135deg, var(--color-orange), var(--color-yellow));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 10px var(--color-orange-glow));
+}
+
+.logo-text h1 {
+    font-family: var(--font-heading);
+    font-size: 1.6rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    line-height: 1.1;
+    background: linear-gradient(90deg, #fff 0%, #dbe1e8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.logo-text p {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+    margin-top: 2px;
+}
+
+.header-actions { display: flex; gap: 10px; }
+
+/* ==========================================================================
+   DASHBOARD / STATS
+   ========================================================================== */
+.dashboard-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.stat-card {
+    position: relative;
+    background: var(--bg-panel);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 106, 0, 0.25);
+}
+
+.card-glow {
+    position: absolute;
+    top: -50px; right: -50px;
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, var(--color-orange-glow) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.stat-card:nth-child(2) .card-glow {
+    background: radial-gradient(circle, var(--color-cyan-glow) 0%, transparent 70%);
+}
+
+.card-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+}
+
+.card-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    display: block;
+    font-weight: 500;
+}
+
+.rank-badge-container { display: flex; align-items: center; gap: 18px; }
+
+.rank-badge-placeholder {
+    width: 60px; height: 60px;
+    display: flex; justify-content: center; align-items: center;
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    font-size: 1.8rem;
+}
+
+.rank-info-text h2 {
+    font-family: var(--font-heading);
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.rank-info-text p {
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    color: var(--color-orange);
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+.progress-val-container {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 4px 0;
+}
+
+.diff-value {
+    font-family: var(--font-heading);
+    font-size: 2.2rem;
+    font-weight: 900;
+}
+
+.diff-value.up { color: var(--color-cyan); text-shadow: 0 0 10px var(--color-cyan-glow); }
+.diff-value.down { color: #ef4444; text-shadow: 0 0 10px rgba(239, 68, 68, 0.3); }
+.diff-value.zero { color: var(--text-muted); }
+
+.diff-unit {
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    font-weight: 700;
+}
+
+.card-subtext { font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; }
+
+.milestone-body { display: flex; flex-direction: column; gap: 6px; }
+
+.progress-bar-container {
+    width: 100%; height: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-orange), var(--color-yellow));
+    box-shadow: 0 0 8px var(--color-orange-glow);
+    border-radius: var(--radius-sm);
+    transition: width 0.5s ease-out;
+}
+
+.milestone-details {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+/* ==========================================================================
+   MAIN LAYOUT & CARDS
+   ========================================================================== */
+.main-layout {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 24px;
+}
+
+@media (max-width: 992px) {
+    .main-layout { grid-template-columns: 1fr; }
+}
+
+.glass-panel {
+    background: var(--bg-panel);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+}
+
+.panel-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.panel-header h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: 0.5px;
+}
+
+.panel-header h2 i {
+    color: var(--color-orange);
+    filter: drop-shadow(0 0 5px var(--color-orange-glow));
+}
+
+/* ==========================================================================
+   INPUT FORM STYLES
+   ========================================================================== */
+#record-form {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 480px) {
+    .form-row { grid-template-columns: 1fr; }
+}
+
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+
+label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+label i { color: var(--color-cyan); }
+
+input[type="number"],
+input[type="date"],
+select,
+textarea {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--color-orange);
+    box-shadow: 0 0 0 3px rgba(255, 106, 0, 0.15);
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.input-with-helper { position: relative; }
+
+.input-helper-text {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.75rem;
+    color: var(--color-cyan);
+    font-weight: 500;
+    min-height: 18px;
+}
+
+.form-toggle-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.15);
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.toggle-title {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.toggle-buttons {
+    display: flex;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 2px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.toggle-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 6px 16px;
+    font-size: 0.8rem;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s ease;
+}
+
+.toggle-btn.active {
+    background: var(--color-orange);
+    color: #fff;
+    box-shadow: 0 0 10px var(--color-orange-glow);
+}
+
+.quick-rank-select {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: -6px;
+}
+
+.quick-label { font-size: 0.75rem; color: var(--text-muted); }
+
+.btn-quick-lp {
+    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-quick-lp:hover {
+    border-color: var(--color-cyan);
+    color: var(--color-cyan);
+    background: rgba(0, 240, 255, 0.05);
+}
+
+.inputs-group {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    animation: fadeIn 0.3s ease;
+}
+
+.hidden { display: none !important; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   BUTTON STYLES
+   ========================================================================== */
+.btn {
+    border: none;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--color-orange) 0%, #e65c00 100%);
+    color: #fff;
+    box-shadow: 0 4px 15px var(--color-orange-glow);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 106, 0, 0.5);
+    filter: brightness(1.1);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--border-hover);
+}
+
+.btn-sm { padding: 6px 12px; font-size: 0.8rem; border-radius: var(--radius-sm); }
+.btn-block { width: 100%; padding: 14px 20px; font-size: 1rem; }
+.btn:active { transform: translateY(1px); }
+
+/* ==========================================================================
+   CHART SECTION
+   ========================================================================== */
+.chart-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.chart-tabs {
+    display: flex;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 4px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+.tab-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+}
+
+.tab-btn.active {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--color-cyan);
+    box-shadow: inset 0 0 10px rgba(0, 240, 255, 0.1);
+}
+
+.chart-container {
+    padding: 24px;
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    min-height: 340px;
+}
+
+canvas { width: 100% !important; height: 100% !important; }
+
+/* ==========================================================================
+   HISTORY TABLE SECTION
+   ========================================================================== */
+.table-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.filter-select {
+    padding: 8px 12px;
+    background: #000000;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.table-container {
+    padding: 0;
+    overflow-x: auto;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.9rem;
+}
+
+.history-table th,
+.history-table td {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.history-table th {
+    background: rgba(255, 255, 255, 0.02);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.history-table tbody tr { transition: background-color 0.2s; }
+.history-table tbody tr:hover { background-color: rgba(255, 255, 255, 0.015); }
+.history-table td { color: var(--text-primary); }
+
+.history-table .rank-cell-content { display: flex; align-items: center; gap: 8px; }
+.history-table .char-cell { font-weight: 600; }
+
+.history-table .mode-badge {
+    font-size: 0.75rem;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
+.mode-badge.lr { background: rgba(255, 106, 0, 0.1); color: var(--color-orange); border: 1px solid rgba(255, 106, 0, 0.2); }
+.mode-badge.mr { background: rgba(124, 58, 237, 0.1); color: #a78bfa; border: 1px solid rgba(124, 58, 237, 0.2); }
+.mode-badge.cm { background: rgba(0, 200, 100, 0.1); color: #4ade80; border: 1px solid rgba(0, 200, 100, 0.2); }
+
+.history-table .diff-cell { font-family: var(--font-heading); font-weight: 700; }
+.history-table .diff-cell.plus { color: var(--color-cyan); }
+.history-table .diff-cell.minus { color: #ef4444; }
+
+.history-table .memo-cell {
+    color: var(--text-secondary);
+    max-width: 280px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.history-table .action-cell { display: flex; justify-content: center; gap: 8px; }
+
+.btn-action {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.95rem;
+    padding: 6px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.btn-action.edit { color: var(--text-secondary); }
+.btn-action.edit:hover { color: var(--color-cyan); background: rgba(0, 240, 255, 0.08); }
+.btn-action.delete { color: var(--text-muted); }
+.btn-action.delete:hover { color: #ef4444; background: rgba(239, 68, 68, 0.08); }
+
+.empty-state { text-align: center; padding: 48px !important; color: var(--text-muted); font-style: italic; }
+
+/* ==========================================================================
+   TOAST NOTIFICATIONS
+   ========================================================================== */
+.toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: #1f2937;
+    color: #fff;
+    padding: 14px 24px;
+    border-radius: var(--radius-md);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    border-left: 4px solid var(--color-orange);
+    z-index: 1000;
+    font-weight: 500;
+    animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+/* ==========================================================================
+   RANK BADGES
+   ========================================================================== */
+.rank-badge-inline {
+    width: 24px; height: 24px;
+    display: inline-flex;
+    justify-content: center; align-items: center;
+    font-weight: bold;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+}
+
+.rb-rookie   { background: var(--rank-rookie); }
+.rb-iron     { background: var(--rank-iron); }
+.rb-bronze   { background: var(--rank-bronze); }
+.rb-silver   { background: var(--rank-silver); }
+.rb-gold     { background: var(--rank-gold); color: #000; text-shadow: none; }
+.rb-platinum { background: var(--rank-platinum); }
+.rb-diamond  { background: var(--rank-diamond); }
+.rb-master   { background: var(--rank-master); }
+
+/* Edit modal */
+.modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 500;
+    display: flex; justify-content: center; align-items: center;
+}
+
+.modal-box {
+    background: var(--bg-panel-solid);
+    border: 1px solid var(--border-hover);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    width: 90%; max-width: 480px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+
+.modal-box h3 {
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+    color: var(--color-orange);
+}
+
+.modal-actions { display: flex; gap: 12px; margin-top: 20px; }
+
+/* コマンドビルダーボタン */
+.cmd-btn {
+    border-radius: 6px; padding: 4px 9px; cursor: pointer;
+    font-size: 0.8rem; border: 1px solid; transition: all .15s; white-space: nowrap;
+}
+.cmd-btn.normal  { background: rgba(0,240,255,0.08); border-color: rgba(0,240,255,0.25); color: var(--color-cyan); }
+.cmd-btn.normal:hover { background: rgba(0,240,255,0.2); }
+.cmd-btn.sp      { background: rgba(255,106,0,0.1); border-color: rgba(255,106,0,0.3); color: #ff6a00; }
+.cmd-btn.sp:hover { background: rgba(255,106,0,0.22); }
+.cmd-btn.neutral { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); color: var(--text-secondary); }
+.cmd-btn.neutral:hover { background: rgba(255,255,255,0.12); }
+.combo-inline-input {
+    background: transparent; border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-primary); width: 100%;
+    font-size: 0.88rem; padding: 2px 0;
+}
+.combo-inline-input:focus { outline: none; border-bottom-color: var(--color-cyan); }
+
+/* 特殊技ボタン */
+.cmd-btn.special { background: rgba(126,232,162,0.1); border-color: rgba(126,232,162,0.35); color: #7ee8a2; }
+.cmd-btn.special:hover { background: rgba(126,232,162,0.2); }
+.cmd-btn.special.active { background: rgba(126,232,162,0.3); box-shadow: 0 0 8px rgba(126,232,162,0.4); }
+
+/* ビルダーセクションラベル */
+.builder-section-label { font-size: 0.78rem; font-weight: 700; letter-spacing: .05em; margin-bottom: 6px; }
+
+/* フレーム電卓 */
+.frame-btn {
+    padding: 8px 4px; border-radius: 6px; cursor: pointer; font-size: 0.92rem; font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05);
+    color: var(--text-primary); transition: all .15s; text-align: center; white-space: nowrap;
+}
+.frame-btn:hover { background: rgba(255,255,255,0.12); }
+.frame-btn.sign.plus  { background: rgba(0,240,255,0.12); border-color: rgba(0,240,255,0.3); color: var(--color-cyan); font-size: 0.78rem; }
+.frame-btn.sign.minus { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.3); color: #ef4444; font-size: 0.78rem; }
+.frame-btn.sign       { background: rgba(255,255,255,0.08); font-size: 0.78rem; }
+.frame-btn.del        { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.25); color: #ef4444; }
+.frame-btn.sp2        { background: rgba(255,106,0,0.12); border-color: rgba(255,106,0,0.3); color: #ff6a00; font-size: 0.78rem; }
+.frame-btn.col2       { grid-column: span 2; }
+/* ===== コンボ追加ボタン ===== */
+.btn-combo-add {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 18px; border-radius: 20px; cursor: pointer;
+    font-size: 0.88rem; font-weight: 600; letter-spacing: .04em;
+    border: 1px solid rgba(0,240,255,0.4);
+    background: linear-gradient(135deg, rgba(0,240,255,0.12), rgba(0,180,255,0.06));
+    color: var(--color-cyan);
+    box-shadow: 0 0 12px rgba(0,240,255,0.15);
+    transition: all .2s; white-space: nowrap;
+}
+.btn-combo-add:hover {
+    background: linear-gradient(135deg, rgba(0,240,255,0.22), rgba(0,180,255,0.14));
+    box-shadow: 0 0 20px rgba(0,240,255,0.3);
+    transform: translateY(-1px);
+}
+.btn-combo-add-icon {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(0,240,255,0.2); display: flex;
+    align-items: center; justify-content: center; font-size: 0.75rem;
+}
+/* ===== 全体テキスト折り返し防止 ===== */
+.stat-card, .card-label, .card-content h2, .card-content p,
+.toggle-btn, .tab-btn, .btn, .btn-sm, .filter-select,
+.mode-badge, .rank-badge-inline, th, .panel-header h2,
+.btn-quick-lp, .btn-action, .header-actions a,
+.btn-combo-add { white-space: nowrap; }
+label { white-space: nowrap; }
+
+
+/* ===== v1.08 追加スタイル ===== */
+
+/* カレンダーアイコンを白く */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(1.5);
+    cursor: pointer;
+}
+
+/* LP電卓 */
+.lp-calc-display {
+    width: 100%; font-family: monospace; font-size: 1.3rem; font-weight: 700;
+    color: #ffd700; text-align: center;
+    background: rgba(0,0,0,0.35); border: 1px solid rgba(255,200,0,0.3);
+    border-radius: 6px; padding: 8px; margin-bottom: 6px;
+    letter-spacing: 1px;
+}
+.lp-calc-grid {
+    display: grid; grid-template-columns: repeat(3,1fr); gap: 5px;
+}
+.lp-calc-btn {
+    padding: 9px 4px; border-radius: 6px; cursor: pointer; font-size: 0.95rem; font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.06);
+    color: var(--text-primary); transition: background .15s; text-align: center;
+}
+.lp-calc-btn:hover { background: rgba(255,255,255,0.14); }
+.lp-calc-btn.del  { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #ef4444; }
+.lp-calc-btn.zero { grid-column: span 2; }
+.lp-calc-btn.clr  { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.3); color: #ef4444; font-size:0.82rem; }
+
+/* ダメージ電卓（00削除・1を正位置） */
+.calc-num-grid {
+    display: grid; grid-template-columns: repeat(3,1fr); gap: 5px;
+}
+
+/* タグバッジ */
+.tag-badge {
+    display: inline-block; padding: 1px 7px; border-radius: 10px;
+    font-size: 0.72rem; font-weight: 700; white-space: nowrap;
+}
+.tag-badge.corner   { background: rgba(255,150,0,0.18); border: 1px solid rgba(255,150,0,0.4);  color: #ffb347; }
+.tag-badge.normal   { background: rgba(160,160,160,0.15); border: 1px solid rgba(160,160,160,0.3); color: #aaa; }
+.tag-badge.drev     { background: rgba(167,139,250,0.18); border: 1px solid rgba(167,139,250,0.4); color: #a78bfa; }
+.tag-badge.issue    { background: rgba(239,68,68,0.15);  border: 1px solid rgba(239,68,68,0.35);  color: #f87171; }
+.tag-badge.notice   { background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.35); color: #fbbf24; }
+.tag-badge.counter-m{ background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.35); color: #60a5fa; }
+.tag-badge.goal     { background: rgba(34,197,94,0.15);  border: 1px solid rgba(34,197,94,0.35);  color: #4ade80; }
+.memo-list-item { padding:10px 12px; border-bottom:1px solid var(--border-color); cursor:pointer; border-radius:6px; margin-bottom:4px; background:rgba(255,255,255,0.03); transition:background 0.15s; }
+.memo-list-item:hover { background:rgba(0,240,255,0.06); }
+.memo-list-item.selected { background:rgba(0,240,255,0.1); border:1px solid rgba(0,240,255,0.25); }
+.memo-list-item .memo-date { font-size:0.7rem; color:var(--text-muted); margin-bottom:4px; }
+.memo-list-item .memo-preview { font-size:0.82rem; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tag-badge.counter {
+    background: rgba(0,240,255,0.12); border: 1px solid rgba(0,240,255,0.4); color: var(--color-cyan);
+}
+.tag-badge.pc {
+    background: rgba(255,106,0,0.12); border: 1px solid rgba(255,106,0,0.4); color: #ff6a00;
+}
+
+/* コンボプレビューバー */
+.combo-preview-bar {
+    display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+    background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 8px; padding: 7px 12px; margin-bottom: 10px;
+    font-size: 0.82rem; color: var(--text-secondary);
+}
+.combo-preview-bar strong { color: var(--text-primary); font-family: monospace; }
+
+/* ヘッダーレスポンシブ */
+@media (max-width: 1100px) {
+    .header-actions { flex-wrap: wrap; justify-content: flex-end; }
+}
+@media (max-width: 700px) {
+    .app-header { flex-direction: column; gap: 12px; align-items: flex-start; }
+    .header-actions { justify-content: flex-start; }
+    .modal-box { padding: 18px 12px; }
+}
+
+/* TC拡張 */
+.tc-row {
+    display: flex; gap: 4px; align-items: center; margin-bottom: 4px;
+}
+.tc-dir-sel {
+    color: #ffd700; background: #000000;
+    border: 1px solid rgba(255,200,0,0.4); border-radius: 4px; padding: 4px 3px;
+    font-size: 0.82rem; width: 58px;
+}
+.tc-move-sel {
+    color: #ffd700; background: #000000;
+    border: 1px solid rgba(255,200,0,0.4); border-radius: 4px; padding: 4px;
+    font-size: 0.82rem;
+}
+
+/* CRパネル */
+#cr-panel button { font-size: 0.8rem; }
+
+/* キャラ選択カラー（select内で色分け） */
+select#combo-char option, select#ct-char-filter option { font-weight: 600; }
+
+
+/* ─── カスタムタグドロップダウン ─────────────────────────── */
+.tag-dropdown { position:relative; display:inline-block; width:100%; }
+.tag-dropdown-toggle {
+    display:flex; align-items:center; justify-content:space-between;
+    width:100%; padding:9px 12px; border-radius:8px; cursor:pointer;
+    background:#0d1b2a; border:1px solid rgba(255,255,255,0.18);
+    color:var(--text-secondary); font-size:0.88rem; transition:border-color .15s;
+}
+.tag-dropdown-toggle:hover { border-color:rgba(0,240,255,0.4); }
+.tag-dropdown-toggle .td-icon { transition:transform .2s; font-size:0.7rem; }
+.tag-dropdown.open .td-icon { transform:rotate(180deg); }
+.tag-dropdown-menu {
+    display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:999;
+    background:#0d1b2a; border:1px solid rgba(0,240,255,0.25); border-radius:10px;
+    padding:6px; max-height:260px; overflow-y:auto;
+    box-shadow:0 8px 32px rgba(0,0,0,0.5);
+}
+.tag-dropdown.open .tag-dropdown-menu { display:block; }
+.tag-dropdown-footer {
+    display:flex; gap:6px; padding:8px 6px 6px; border-top:1px solid rgba(255,255,255,0.08); margin-top:4px;
+}
+.tag-dropdown-footer button {
+    flex:1; padding:5px 0; border-radius:6px; font-size:0.78rem; cursor:pointer; border:none;
+}
+.td-btn-confirm { background:var(--color-cyan); color:#000; font-weight:700; }
+.td-btn-confirm:hover { background:#00d4e8; }
+.td-btn-clear { background:rgba(255,255,255,0.08); color:var(--text-secondary); }
+.td-btn-clear:hover { background:rgba(255,255,255,0.14); }
+.tag-dropdown-item {
+    display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:7px;
+    cursor:pointer; transition:background .12s; user-select:none;
+}
+.tag-dropdown-item:hover { background:rgba(0,240,255,0.08); }
+.tag-dropdown-item.selected { background:rgba(0,240,255,0.12); }
+.tag-dropdown-item .td-check {
+    width:16px; height:16px; border:1.5px solid rgba(255,255,255,0.3); border-radius:4px;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    font-size:0.65rem; transition:all .12s;
+}
+.tag-dropdown-item.selected .td-check {
+    background:var(--color-cyan); border-color:var(--color-cyan); color:#000;
+}
+.tag-selected-badges {
+    display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; min-height:24px;
+}
+
+/* ─── 3Dナビアイコン ──────────────────────────────────────── */
+.nav-icon-3d {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:22px; height:22px; border-radius:6px; margin-right:6px;
+    position:relative; transform-style:preserve-3d;
+    box-shadow:0 4px 8px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.25);
+    transition:transform .15s, box-shadow .15s;
+    vertical-align:middle;
+}
+.toggle-btn:hover .nav-icon-3d { transform:translateY(-1px) rotateX(8deg); box-shadow:0 6px 12px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.3); }
+.nav-icon-3d svg { display:block; }
+
+/* ─── バージョンバッジ ────────────────────────────────────── */
+.app-version-badge {
+    font-size:0.65rem; color:rgba(0,240,255,0.55); background:rgba(0,240,255,0.07);
+    border:1px solid rgba(0,240,255,0.18); border-radius:5px; padding:1px 6px;
+    font-family:var(--font-heading); letter-spacing:0.05em; margin-top:3px;
+    display:inline-block;
+}
+/* 全プルダウン背景色を黒に統一 */
+select {
+    background: #000000 !important;
+}
+    </style>
+</head>
+<body>
+<div class="app-container">
+
+    <!-- HEADER -->
+    <header class="app-header">
+        <div class="logo-area">
+            <div class="logo-icon" style="font-size:1.8rem; display:flex; align-items:center; justify-content:center; width:48px; height:48px; background:linear-gradient(135deg,#001a33 0%,#003366 50%,#001a33 100%); border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.5),inset 0 1px 1px rgba(0,240,255,0.2),0 0 12px rgba(0,240,255,0.15); border:1px solid rgba(0,240,255,0.25);">
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <linearGradient id="lg_bolt" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stop-color="#00f0ff"/>
+                      <stop offset="50%" stop-color="#fff"/>
+                      <stop offset="100%" stop-color="#0070ff"/>
+                    </linearGradient>
+                    <filter id="glow_bolt"><feGaussianBlur stdDeviation="1.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                  </defs>
+                  <polygon points="16,2 7,16 13,16 12,26 21,12 15,12" fill="url(#lg_bolt)" filter="url(#glow_bolt)" opacity="0.97"/>
+                  <polygon points="16,2 7,16 13,16 12,26 21,12 15,12" fill="rgba(0,240,255,0.2)" transform="translate(1,1.5)"/>
+                </svg>
+            </div>
+            <div class="logo-text">
+                <h1>SF6 LP TRACKER</h1>
+                <p>ランクマッチ成績管理ツール</p>
+                <span class="app-version-badge">v1.12</span>
+            </div>
+        </div>
+        <div class="header-actions" style="flex-wrap:wrap;">
+            
+            <div id="room-badge" style="display:none; align-items:center; gap:6px; font-size:0.78rem; color:var(--text-muted); margin-right:4px;">
+                <i class="fas fa-door-open"></i>
+                <span id="room-badge-name" style="color:var(--color-cyan); font-weight:700;"></span>
+                <button onclick="changeRoom()" style="background:none; border:1px solid var(--border-color); color:var(--text-muted); border-radius:4px; padding:2px 7px; font-size:0.72rem; cursor:pointer;">変更</button>
+            </div>
+            <div class="toggle-buttons" style="margin-right:6px;">
+                <button class="toggle-btn active" id="btn-view-match" onclick="setView('match')" style="font-size:0.8rem; padding:6px 14px;"><span class="nav-icon-3d" style="background:linear-gradient(135deg,#b8860b 0%,#ffd700 45%,#fffacd 70%,#b8860b 100%); box-shadow:0 4px 8px rgba(0,0,0,0.5),inset 0 1px 1px rgba(255,255,180,0.5),0 0 8px rgba(255,215,0,0.3);"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polygon points="8,1 3,8 6.5,8 6,13 11,6 7.5,6" fill="white" opacity="0.95"/><polygon points="8,1 3,8 6.5,8 6,13 11,6 7.5,6" fill="rgba(255,240,0,0.5)" transform="translate(0.5,0.5)"/></svg></span> 対戦</button>
+                <button class="toggle-btn" id="btn-view-combo" onclick="setView('combo')" style="font-size:0.8rem; padding:6px 14px;"><span class="nav-icon-3d" style="background:linear-gradient(135deg,#7a1800 0%,#ff4500 40%,#ff9a00 70%,#7a1800 100%); box-shadow:0 4px 8px rgba(0,0,0,0.5),inset 0 1px 1px rgba(255,200,100,0.4),0 0 8px rgba(255,80,0,0.3);"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 13C7 13 2 10 2 6.5C2 4 4 2.5 5.5 3C4.5 4.5 5.5 5.5 5.5 5.5C5.5 5.5 5 3.5 7 2C7 2 6.5 5 8.5 5.5C8 4.5 8.5 3.5 9.5 3.5C10.5 3.5 12 5 12 6.5C12 10 7 13 7 13Z" fill="white" opacity="0.95"/></svg></span> コンボトラッカー</button>
+                <button class="toggle-btn" id="btn-view-memo" onclick="setView('memo')" style="font-size:0.8rem; padding:6px 14px;"><span class="nav-icon-3d" style="background:linear-gradient(135deg,#3a1a6e 0%,#7c3aed 45%,#c4b5fd 70%,#3a1a6e 100%); box-shadow:0 4px 8px rgba(0,0,0,0.5),inset 0 1px 1px rgba(200,180,255,0.4),0 0 8px rgba(124,58,237,0.3);"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2.5" y="1.5" width="9" height="11" rx="1.5" fill="white" opacity="0.9"/><rect x="4" y="4" width="6" height="1" rx="0.5" fill="#7c3aed"/><rect x="4" y="6.5" width="6" height="1" rx="0.5" fill="#7c3aed"/><rect x="4" y="9" width="4" height="1" rx="0.5" fill="#7c3aed"/></svg></span> メモ</button>
+            </div>
+            <a class="btn btn-secondary btn-sm" href="https://www.streetfighter.com/6/ja-jp" target="_blank" rel="noopener">
+                <i class="fas fa-globe"></i> SF6公式サイト
+            </a>
+            <button class="btn btn-secondary btn-sm" onclick="exportCSV()">
+                <i class="fas fa-download"></i> CSVエクスポート
+            </button>
+            <label class="btn btn-secondary btn-sm" style="cursor:pointer; margin:0;">
+                <i class="fas fa-upload"></i> CSVインポート
+                <input type="file" accept=".csv" style="display:none;" onchange="importCSV(event)">
+            </label>
+            <button class="btn btn-secondary btn-sm" onclick="openDateClearModal()">
+                <i class="fas fa-calendar-times"></i> 期間クリア
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="clearAllData()">
+                <i class="fas fa-trash"></i> リセット
+            </button>
+        </div>
+    </header>
+
+    <!-- DASHBOARD -->
+    <section class="dashboard-summary">
+        <!-- 現在ランク -->
+        <div class="stat-card">
+            <div class="card-glow"></div>
+            <div class="card-content">
+                <span class="card-label"><i class="fas fa-shield-halved"></i> 現在のランク</span>
+                <div class="rank-badge-container">
+                    <div class="rank-badge-placeholder" id="current-rank-icon">—</div>
+                    <div class="rank-info-text">
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <h2 id="current-rank-name" style="margin:0;">記録なし</h2>
+                            <span id="next-rank-progress" style="
+                                font-size:0.72rem;
+                                color:var(--color-cyan);
+                                background:rgba(79,195,247,0.08);
+                                border:1px solid rgba(79,195,247,0.22);
+                                border-radius:10px;
+                                padding:2px 9px;
+                                white-space:nowrap;
+                                letter-spacing:0.02em;
+                            "></span>
+                        </div>
+                        <p id="current-lp-display">— LP</p>
+                        <p id="current-lp-diff" style="font-size:0.82rem; color:var(--text-muted); margin:2px 0 0;"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MAIN LAYOUT -->
+    <div class="main-layout">
+
+        <!-- LEFT: 入力フォーム -->
+        <div class="glass-panel">
+            <div class="panel-header">
+                <h2><i class="fas fa-plus-circle"></i> 対戦結果を記録</h2>
+            </div>
+            <div id="record-form">
+                <!-- モード切替 -->
+                <div class="form-toggle-container">
+                    <span class="toggle-title"><i class="fas fa-gamepad"></i> モード</span>
+                    <div class="toggle-buttons">
+                        <button class="toggle-btn active" id="btn-lr" onclick="setMode('LR')">LP</button>
+                        <button class="toggle-btn" id="btn-mr" onclick="setMode('MR')">MR</button>
+                        <button class="toggle-btn" id="btn-cm" onclick="setMode('CM')">カスタム</button>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar"></i> 日付</label>
+                        <input type="date" id="input-date">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> キャラクター</label>
+                        <select id="input-char">
+                            <option value="">選択してください</option>
+                            <optgroup label="ベースロスター">
+                              <option>リュウ</option><option>ルーク</option><option>ジェイミー</option>
+                              <option>春麗</option><option>ガイル</option><option>キンバリー</option>
+                              <option>ジュリ</option><option>ケン</option><option>ブランカ</option>
+                              <option>ダルシム</option><option>エドモンド本田</option><option>ディージェイ</option>
+                              <option>マノン</option><option>マリーザ</option><option>ＪＰ</option>
+                              <option>ザンギエフ</option><option>リリー</option><option>キャミィ</option>
+                            </optgroup>
+                            <optgroup label="Year 1 DLC">
+                              <option>ラシード</option><option>A.K.I.</option><option>エド</option><option>豪鬼</option>
+                            </optgroup>
+                            <optgroup label="Year 2 DLC">
+                              <option>ベガ</option><option>テリー</option><option>舞</option><option>エレナ</option>
+                            </optgroup>
+                            <optgroup label="Year 3 DLC">
+                              <option>サガット</option><option>C.ヴァイパー</option><option>アレックス</option><option>イングリッド</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="rank-lp-section">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label><i class="fas fa-shield-alt"></i> 現在のランク</label>
+                        <select id="input-rank">
+                            <option value="">選択</option>
+                            <option value="rookie">Rookie</option>
+                            <option value="iron">Iron</option>
+                            <option value="bronze">Bronze</option>
+                            <option value="silver">Silver</option>
+                            <option value="gold">Gold</option>
+                            <option value="platinum">Platinum</option>
+                            <option value="diamond">Diamond</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-star"></i> <span id="lp-label-text">現在のLP</span></label>
+                        <input type="hidden" id="input-lp">
+                        <div class="lp-calc-display" id="lp-calc-display">---</div>
+                        <div class="lp-calc-grid">
+                            <button class="lp-calc-btn" onclick="lpCalcInput('7')">7</button>
+                            <button class="lp-calc-btn" onclick="lpCalcInput('8')">8</button>
+                            <button class="lp-calc-btn" onclick="lpCalcInput('9')">9</button>
+                            <button class="lp-calc-btn" onclick="lpCalcInput('4')">4</button>
+                            <button class="lp-calc-btn" onclick="lpCalcInput('5')">5</button>
+                            <button class="lp-calc-btn" onclick="lpCalcInput('6')">6</button>
+                            <button class="lp-calc-btn" onclick="lpCalcInput('1')">1</button>
+                            <button class="lp-calc-btn" onclick="lpCalcInput('2')">2</button>
+                            <button class="lp-calc-btn" onclick="lpCalcInput('3')">3</button>
+                            <button class="lp-calc-btn" onclick="lpCalcInput('0')">0</button>
+                            <button class="lp-calc-btn" onclick="lpCalcClear()">C</button>
+                            <button class="lp-calc-btn del" onclick="lpCalcBackspace()">⌫</button>
+                        </div>
+                        <span class="input-helper-text" id="lp-diff-preview" style="display:block; margin-top:4px; font-size:0.78rem;"></span>
+                    </div>
+                </div>
+                </div>
+
+                <!-- クイックLP差分 -->
+                <div class="quick-rank-select" id="quick-section">
+                    <span class="quick-label">クイック入力:</span>
+                    <button class="btn-quick-lp" onclick="addQuickLP(50)">+50</button>
+                    <button class="btn-quick-lp" onclick="addQuickLP(100)">+100</button>
+                    <button class="btn-quick-lp" onclick="addQuickLP(200)">+200</button>
+                    <button class="btn-quick-lp" onclick="addQuickLP(-50)">-50</button>
+                    <button class="btn-quick-lp" onclick="addQuickLP(-100)">-100</button>
+                    <button class="btn-quick-lp" onclick="addQuickLP(-200)">-200</button>
+                </div>
+
+                <!-- カスタムマッチ専用フィールド -->
+                <div id="cm-fields" class="inputs-group hidden">
+                    <div class="form-group" style="margin-bottom:8px;">
+                        <label><i class="fas fa-user-ninja"></i> 対戦相手キャラ</label>
+                        <select id="input-opponent">
+                            <option value="">選択してください</option>
+                            <optgroup label="ベースロスター">
+                              <option>リュウ</option><option>ルーク</option><option>ジェイミー</option>
+                              <option>春麗</option><option>ガイル</option><option>キンバリー</option>
+                              <option>ジュリ</option><option>ケン</option><option>ブランカ</option>
+                              <option>ダルシム</option><option>エドモンド本田</option><option>ディージェイ</option>
+                              <option>マノン</option><option>マリーザ</option><option>ＪＰ</option>
+                              <option>ザンギエフ</option><option>リリー</option><option>キャミィ</option>
+                            </optgroup>
+                            <optgroup label="Year 1 DLC">
+                              <option>ラシード</option><option>A.K.I.</option><option>エド</option><option>豪鬼</option>
+                            </optgroup>
+                            <optgroup label="Year 2 DLC">
+                              <option>ベガ</option><option>テリー</option><option>舞</option><option>エレナ</option>
+                            </optgroup>
+                            <optgroup label="Year 3 DLC">
+                              <option>サガット</option><option>C.ヴァイパー</option><option>アレックス</option><option>イングリッド</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:8px;">
+                        <label><i class="fas fa-flag"></i> 勝敗</label>
+                        <div style="display:flex; gap:0; margin-bottom:6px; border-radius:6px; overflow:hidden; border:1px solid rgba(255,255,255,0.12);">
+                            <button id="cm-tab-win" onclick="setCMCalcTab('win')" style="flex:1; padding:6px; border:none; background:rgba(0,240,255,0.2); color:var(--color-cyan); cursor:pointer; font-weight:700;">勝ち</button>
+                            <button id="cm-tab-lose" onclick="setCMCalcTab('lose')" style="flex:1; padding:6px; border:none; background:rgba(0,0,0,0.2); color:rgba(239,68,68,0.4); cursor:pointer; font-weight:700;">負け</button>
+                        </div>
+                        <input type="hidden" id="input-cm-win" value="0">
+                        <input type="hidden" id="input-cm-lose" value="0">
+                        <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
+                            <div style="flex:1; text-align:center; font-size:0.82rem; color:var(--color-cyan);">勝ち: <strong id="cm-win-display">0</strong></div>
+                            <div style="flex:1; text-align:center; font-size:0.82rem; color:#ef4444;">負け: <strong id="cm-lose-display">0</strong></div>
+                        </div>
+                        <div id="cm-calc-display" style="font-family:monospace; font-size:1.1rem; font-weight:700; text-align:center; color:var(--color-cyan); background:rgba(0,0,0,0.3); border:1px solid rgba(0,240,255,0.25); border-radius:6px; padding:8px; margin-bottom:6px;">0</div>
+                        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:4px;">
+                            <button onclick="cmCalcInput('7')" class="lp-calc-btn">7</button>
+                            <button onclick="cmCalcInput('8')" class="lp-calc-btn">8</button>
+                            <button onclick="cmCalcInput('9')" class="lp-calc-btn">9</button>
+                            <button onclick="cmCalcInput('4')" class="lp-calc-btn">4</button>
+                            <button onclick="cmCalcInput('5')" class="lp-calc-btn">5</button>
+                            <button onclick="cmCalcInput('6')" class="lp-calc-btn">6</button>
+                            <button onclick="cmCalcInput('1')" class="lp-calc-btn">1</button>
+                            <button onclick="cmCalcInput('2')" class="lp-calc-btn">2</button>
+                            <button onclick="cmCalcInput('3')" class="lp-calc-btn">3</button>
+                            <button onclick="cmCalcInput('0')" class="lp-calc-btn">0</button>
+                            <button onclick="cmCalcClear()" class="lp-calc-btn">C</button>
+                            <button onclick="cmCalcBackspace()" class="lp-calc-btn del">⌫</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-comment"></i> メモ（任意）</label>
+                    <textarea id="input-memo" rows="2" placeholder="対戦メモ、反省点など..."></textarea>
+                </div>
+
+                <button class="btn btn-primary btn-block" onclick="saveRecord()">
+                    <i class="fas fa-save"></i> 記録を保存
+                </button>
+            </div>
+        </div>
+
+        <!-- RIGHT: チャート -->
+        <div class="glass-panel">
+            <div class="panel-header">
+                <div class="chart-header-row">
+                    <h2 id="chart-title"><i class="fas fa-chart-area"></i> LP推移グラフ</h2>
+                    <div id="lp-chart-tabs" class="chart-tabs">
+                        <button class="tab-btn active" onclick="setChartRange('all', this)">全期間</button>
+                        <button class="tab-btn" onclick="setChartRange('30', this)">30日</button>
+                        <button class="tab-btn" onclick="setChartRange('7', this)">7日</button>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="lp-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- HISTORY TABLE -->
+    <div class="glass-panel">
+        <div class="panel-header">
+            <div class="table-header-row">
+                <h2><i class="fas fa-history"></i> 対戦履歴</h2>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <select class="filter-select" id="filter-char" onchange="renderTable()">
+                        <option value="">全キャラ</option>
+                    </select>
+                    <select class="filter-select" id="filter-mode" onchange="renderTable()">
+                        <option value="">全モード</option>
+                        <option value="LR">LP</option>
+                        <option value="MR">MR</option>
+                        <option value="CM">カスタム</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="table-container">
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>日付</th>
+                        <th>キャラ</th>
+                        <th>モード</th>
+                        <th>ランク</th>
+                        <th>LP</th>
+                        <th>変動</th>
+                        <th>メモ</th>
+                        <th style="text-align:center;">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="history-tbody">
+                    <tr><td class="empty-state" colspan="8">記録がありません。最初の対戦を記録しましょう！</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <!-- ページネーション -->
+        <div id="pagination-bar" style="display:flex; align-items:center; justify-content:center; gap:6px; padding:14px 0 4px; flex-wrap:wrap;"></div>
+    </div>
+
+    <!-- COMBO TRACKER -->
+    <div class="glass-panel" id="combo-panel">
+        <div class="panel-header">
+            <div class="table-header-row" style="flex-wrap:wrap; gap:6px 10px; align-items:center;">
+                <!-- 左側: タイトル + タグ絞り込みボタン + 選択済みバッジ（横並び） -->
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; flex:1; min-width:0;">
+                    <h2 style="margin:0; white-space:nowrap;"><i class="fas fa-fist-raised"></i> コンボトラッカー</h2>
+                    <div class="tag-dropdown" id="ct-tag-filter-dd" style="position:relative; flex-shrink:0;">
+                        <button type="button" class="tag-dropdown-toggle" onclick="toggleFilterTagDropdown(event)" style="padding:5px 10px; font-size:0.8rem; white-space:nowrap; min-width:0;">
+                            <i class="fas fa-tag" style="font-size:0.68rem; margin-right:4px; color:var(--color-cyan);"></i>
+                            <span id="filter-tag-label" style="color:var(--text-muted);">タグ絞り込み</span>
+                            <i class="fas fa-chevron-down td-icon" style="font-size:0.65rem; margin-left:4px;"></i>
+                        </button>
+                        <div class="tag-dropdown-menu" id="filter-tag-menu" style="min-width:180px; top:calc(100% + 4px); left:0;"></div>
+                    </div>
+                    <div id="filter-tag-badges" style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;"></div>
+                </div>
+                <!-- 右側: キャラ選択 + ステータス + 追加ボタン -->
+                <div style="display:flex; gap:8px; align-items:center; flex-shrink:0;">
+                    <select id="ct-char-filter" onchange="renderComboTable()" style="min-width:140px;" class="filter-select">
+                        <option value="">── キャラを選択 ──</option>
+                        <optgroup label="ベースロスター">
+                          <option>リュウ</option><option>ルーク</option><option>ジェイミー</option>
+                          <option>春麗</option><option>ガイル</option><option>キンバリー</option>
+                          <option>ジュリ</option><option>ケン</option><option>ブランカ</option>
+                          <option>ダルシム</option><option>エドモンド本田</option><option>ディージェイ</option>
+                          <option>マノン</option><option>マリーザ</option><option>ＪＰ</option>
+                          <option>ザンギエフ</option><option>リリー</option><option>キャミィ</option>
+                        </optgroup>
+                        <optgroup label="Year 1 DLC">
+                          <option>ラシード</option><option>A.K.I.</option><option>エド</option><option>豪鬼</option>
+                        </optgroup>
+                        <optgroup label="Year 2 DLC">
+                          <option>ベガ</option><option>テリー</option><option>舞</option><option>エレナ</option>
+                        </optgroup>
+                        <optgroup label="Year 3 DLC">
+                          <option>サガット</option><option>C.ヴァイパー</option><option>アレックス</option><option>イングリッド</option>
+                        </optgroup>
+                    </select>
+                    <span id="combo-save-status" style="font-size:0.75rem; min-width:80px; text-align:right;"></span>
+                    <button class="btn-combo-add" onclick="addCombo()">
+                        <span class="btn-combo-add-icon"><i class="fas fa-plus"></i></span>
+                        <span>コンボ追加</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="table-container">
+            <table class="history-table" id="combo-table">
+                <thead>
+                    <tr>
+                        <th style="width:120px;">タグ</th>
+                        <th>コマンド</th>
+                        <th style="width:80px;">ダメージ</th>
+                        <th style="width:80px;">後フレーム</th>
+                        <th>メモ</th>
+                        <th style="width:44px; text-align:center;">削除</th>
+                    </tr>
+                </thead>
+                <tbody id="combo-tbody">
+                    <tr><td class="empty-state" colspan="7">キャラを選択してコンボを登録してください。</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- MEMO PANEL -->
+    <div class="glass-panel" id="memo-panel" style="display:none;">
+        <div class="panel-header">
+            <div class="table-header-row">
+                <h2><i class="fas fa-sticky-note" style="color:#a78bfa;"></i> メモ</h2>
+                <span id="memo-save-status" style="font-size:0.75rem; min-width:110px; text-align:right;"></span>
+            </div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:0 4px 4px;">
+            <div>
+                <div style="background:rgba(167,139,250,0.06); border:1px solid rgba(167,139,250,0.2); border-radius:10px; padding:14px; margin-bottom:12px;">
+                    <div style="font-size:0.8rem; color:#a78bfa; font-weight:600; margin-bottom:10px;">メモを追加</div>
+                    <div class="form-group" style="margin-bottom:10px;">
+                        <label style="font-size:0.8rem;">本文</label>
+                        <textarea id="memo-text" rows="4" placeholder="気づき・課題・対策・目標を記録..."
+                            style="width:100%; background:#0d1b2a; border:1px solid rgba(167,139,250,0.3); border-radius:8px; padding:10px 12px; color:#f0f2f7; font-size:0.88rem; resize:vertical; box-sizing:border-box;"></textarea>
+                    </div>
+                    <div class="form-group" style="margin-bottom:10px;">
+                        <label style="font-size:0.8rem;">タグ（複数選択可）</label>
+                        <div class="tag-dropdown" id="memo-tag-dropdown" style="margin-top:4px;">
+                            <button type="button" class="tag-dropdown-toggle" onclick="toggleMemoTagDropdown(event)">
+                                <span id="memo-tag-label" style="color:var(--text-muted);">タグを選択...</span>
+                                <i class="fas fa-chevron-down td-icon" style="font-size:0.7rem;"></i>
+                            </button>
+                            <div class="tag-dropdown-menu" id="memo-tag-menu"></div>
+                            <div class="tag-selected-badges" id="memo-tag-badges" style="margin-top:6px;"></div>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom:12px;">
+                        <label style="font-size:0.8rem;">キャラ（任意）</label>
+                        <select id="memo-char" class="filter-select" style="width:100%;">
+                            <option value="">── 全般 ──</option>
+                            <optgroup label="ベースロスター">
+                              <option>リュウ</option><option>ルーク</option><option>ジェイミー</option>
+                              <option>春麗</option><option>ガイル</option><option>キンバリー</option>
+                              <option>ジュリ</option><option>ケン</option><option>ブランカ</option>
+                              <option>ダルシム</option><option>エドモンド本田</option><option>ディージェイ</option>
+                              <option>マノン</option><option>マリーザ</option><option>ＪＰ</option>
+                              <option>ザンギエフ</option><option>リリー</option><option>キャミィ</option>
+                            </optgroup>
+                            <optgroup label="Year 1 DLC">
+                              <option>ラシード</option><option>A.K.I.</option><option>エド</option><option>豪髂</option>
+                            </optgroup>
+                            <optgroup label="Year 2 DLC">
+                              <option>ベガ</option><option>テリー</option><option>舞</option><option>エレナ</option>
+                            </optgroup>
+                            <optgroup label="Year 3 DLC">
+                              <option>サガット</option><option>C.ヴァイパー</option><option>アレックス</option><option>イングリッド</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <button onclick="addNote()" class="btn btn-primary" style="width:100%; padding:9px;">
+                        <i class="fas fa-plus"></i> メモを保存
+                    </button>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+                    <span style="font-size:0.78rem; color:var(--text-muted); white-space:nowrap;">保存済みメモ</span>
+                    <div style="position:relative; flex:1;">
+                        <i class="fas fa-search" style="position:absolute; left:8px; top:50%; transform:translateY(-50%); font-size:0.72rem; color:var(--text-muted); pointer-events:none;"></i>
+                        <input type="text" id="memo-search" placeholder="検索..." oninput="renderNoteList()"
+                            style="width:100%; padding:5px 8px 5px 26px; background:#0d1b2a; border:1px solid rgba(255,255,255,0.15); border-radius:7px; font-size:0.8rem; color:#f0f2f7; box-sizing:border-box; outline:none;">
+                    </div>
+                </div>
+                <div id="memo-list" style="max-height:360px; overflow-y:auto;">
+                    <div style="color:var(--text-muted); font-size:0.85rem; text-align:center; padding:20px;">メモがありません</div>
+                </div>
+            </div>
+            <div>
+                <div id="memo-detail" style="min-height:300px; background:rgba(255,255,255,0.02); border:1px solid var(--border-color); border-radius:10px; padding:20px; display:flex; align-items:center; justify-content:center;">
+                    <span style="color:var(--text-muted); font-size:0.85rem;">← メモを選択すると詳細が表示されます</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- COMBO MODAL -->
+<div class="modal-overlay hidden" id="combo-modal">
+    <div class="modal-box" style="max-width:780px; width:96vw; max-height:90vh; overflow-y:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <h3 style="white-space:nowrap; margin:0;"><i class="fas fa-fist-raised"></i> コンボ登録</h3>
+            <div style="display:flex; gap:8px;">
+                <button class="btn btn-primary" style="padding:7px 18px;" onclick="saveCombo()"><i class="fas fa-check"></i> 保存</button>
+                <button class="btn btn-secondary" style="padding:7px 14px;" onclick="closeComboModal()"><i class="fas fa-times"></i> キャンセル</button>
+            </div>
+        </div>
+        <input type="hidden" id="combo-edit-id">
+
+        <!-- キャラ -->
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+            <div class="form-group" style="flex:1; margin:0;">
+                <label>キャラ</label>
+                <select id="combo-char">
+                    <option value="">選択してください</option>
+                    <optgroup label="ベースロスター">
+                      <option>リュウ</option><option>ルーク</option><option>ジェイミー</option>
+                      <option>春麗</option><option>ガイル</option><option>キンバリー</option>
+                      <option>ジュリ</option><option>ケン</option><option>ブランカ</option>
+                      <option>ダルシム</option><option>エドモンド本田</option><option>ディージェイ</option>
+                      <option>マノン</option><option>マリーザ</option><option>ＪＰ</option>
+                      <option>ザンギエフ</option><option>リリー</option><option>キャミィ</option>
+                    </optgroup>
+                    <optgroup label="Year 1 DLC">
+                      <option>ラシード</option><option>A.K.I.</option><option>エド</option><option>豪鬼</option>
+                    </optgroup>
+                    <optgroup label="Year 2 DLC">
+                      <option>ベガ</option><option>テリー</option><option>舞</option><option>エレナ</option>
+                    </optgroup>
+                    <optgroup label="Year 3 DLC">
+                      <option>サガット</option><option>C.ヴァイパー</option><option>アレックス</option><option>イングリッド</option>
+                    </optgroup>
+                </select>
+            </div>
+
+        </div>
+
+        <!-- タグ選択（カスタムドロップダウン） -->
+        <div class="form-group" style="margin-bottom:8px;">
+            <label>タグ</label>
+            <div class="tag-dropdown" id="combo-tag-dropdown">
+                <button type="button" class="tag-dropdown-toggle" onclick="toggleTagDropdown(event)">
+                    <span id="tag-dropdown-label" style="color:var(--text-muted);">タグを選択...</span>
+                    <i class="fas fa-chevron-down td-icon" style="font-size:0.7rem;"></i>
+                </button>
+                <div class="tag-dropdown-menu" id="tag-dropdown-menu"></div>
+                <div class="tag-selected-badges" id="tag-selected-badges"></div>
+            </div>
+        </div>
+
+        <!-- コマンドビルダー -->
+        <div class="form-group" style="margin-bottom:8px;">
+            <label>コマンドビルダー</label>
+            <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px;">
+
+                <!-- 基本技 -->
+                <div style="margin-bottom:10px;">
+                    <div class="builder-section-label" style="color:var(--color-cyan);">基本技</div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-start;">
+                        <!-- 方向テンキー + CR -->
+                        <div>
+                            <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:4px; text-align:center;">方向（任意）</div>
+                            <div style="display:grid; grid-template-columns:repeat(3,36px); gap:3px;">
+                                <button onclick="selectSpDir('↖')" id="spdir-↖" class="cmd-btn special" style="padding:4px;">↖</button>
+                                <button onclick="selectSpDir('↑')" id="spdir-↑" class="cmd-btn special" style="padding:4px;">↑</button>
+                                <button onclick="selectSpDir('↗')" id="spdir-↗" class="cmd-btn special" style="padding:4px;">↗</button>
+                                <button onclick="selectSpDir('←')" id="spdir-←" class="cmd-btn special" style="padding:4px;">←</button>
+                                <button onclick="selectSpDir('')"  id="spdir-N"  class="cmd-btn special" style="padding:4px; font-size:0.65rem;">N</button>
+                                <button onclick="selectSpDir('→')" id="spdir-→" class="cmd-btn special" style="padding:4px;">→</button>
+                                <button onclick="selectSpDir('↙')" id="spdir-↙" class="cmd-btn special" style="padding:4px;">↙</button>
+                                <button onclick="selectSpDir('↓')" id="spdir-↓" class="cmd-btn special" style="padding:4px;">↓</button>
+                                <button onclick="selectSpDir('↘')" id="spdir-↘" class="cmd-btn special" style="padding:4px;">↘</button>
+                            </div>
+                            <div style="margin-top:4px;">
+                                <button onclick="toggleCR()" id="btn-CR-basic" style="width:108px; background:rgba(255,106,0,0.1); border:1px solid rgba(255,106,0,0.3); color:#ff6a00; border-radius:4px; padding:4px 6px; cursor:pointer; font-size:0.78rem; text-align:center;">CR</button>
+                            </div>
+                        </div>
+                        <!-- P系 + K系 + TC -->
+                        <div style="flex:1; min-width:220px;">
+                            <!-- P系（cyan） -->
+                            <div style="font-size:0.7rem; color:var(--color-cyan); margin-bottom:3px;">P 系</div>
+                            <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:6px;">
+                                <button onclick="addBasicTech('弱P')"   class="cmd-btn normal">弱P</button>
+                                <button onclick="addBasicTech('中P')"   class="cmd-btn normal">中P</button>
+                                <button onclick="addBasicTech('強P')"   class="cmd-btn normal">強P</button>
+                                <button onclick="addBasicTech('J弱P')"  class="cmd-btn normal">J弱P</button>
+                                <button onclick="addBasicTech('J中P')"  class="cmd-btn normal">J中P</button>
+                                <button onclick="addBasicTech('J強P')"  class="cmd-btn normal">J強P</button>
+                                <button onclick="addBasicTech('PP')"    class="cmd-btn normal">PP</button>
+                                <button onclick="addBasicTech('PPP')"   class="cmd-btn normal">PPP</button>
+                            </div>
+                            <!-- K系（green） -->
+                            <div style="font-size:0.7rem; color:#7ee8a2; margin-bottom:3px;">K 系</div>
+                            <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:6px;">
+                                <button onclick="addBasicTech('弱K')"   class="cmd-btn special">弱K</button>
+                                <button onclick="addBasicTech('中K')"   class="cmd-btn special">中K</button>
+                                <button onclick="addBasicTech('強K')"   class="cmd-btn special">強K</button>
+                                <button onclick="addBasicTech('J弱K')"  class="cmd-btn special">J弱K</button>
+                                <button onclick="addBasicTech('J中K')"  class="cmd-btn special">J中K</button>
+                                <button onclick="addBasicTech('J強K')"  class="cmd-btn special">J強K</button>
+                                <button onclick="addBasicTech('KK')"    class="cmd-btn special">KK</button>
+                                <button onclick="addBasicTech('KKK')"   class="cmd-btn special">KKK</button>
+                            </div>
+                            <!-- TC -->
+                            <div>
+                                <button onclick="toggleTCPanel()" id="btn-TC" style="background:rgba(255,200,0,0.15); border:1px solid rgba(255,200,0,0.4); color:#ffd700; border-radius:6px; padding:5px 14px; cursor:pointer; font-size:0.85rem; font-weight:700; width:100%;">TC</button>
+                            </div>
+                            <div id="tc-panel" style="display:none; margin-top:6px; background:rgba(20,14,0,0.9); border:1px solid rgba(255,200,0,0.3); border-radius:6px; padding:8px;">
+                                <div style="font-size:0.75rem; color:#ffd700; margin-bottom:6px;">TC 入力（方向+技）</div>
+                                <div id="tc-inputs-container">
+                                    <!-- 動的に行を追加 -->
+                                </div>
+                                <div style="display:flex; gap:6px; margin-top:6px; align-items:center;">
+                                    <button onclick="addTCInputRow()" style="background:rgba(255,200,0,0.12); border:1px solid rgba(255,200,0,0.35); color:#ffd700; border-radius:4px; padding:4px 10px; cursor:pointer; font-size:0.82rem;">＋ 技を追加</button>
+                                    <button onclick="addTCCmd()" style="background:rgba(255,200,0,0.25); border:1px solid rgba(255,200,0,0.5); color:#ffd700; border-radius:4px; padding:5px 14px; cursor:pointer; font-size:0.85rem; font-weight:700;">入力</button>
+                                </div>
+                                <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">例: 弱P - →中P - 強K → TC(弱P-→中P-強K)</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">方向は任意（選択しなくてもOK）。CR モード時は「CR 方向+技」形式で入力。</div>
+                </div>
+
+                <!-- 必殺技ビルダー -->
+                <div style="margin-bottom:10px;">
+                    <div class="builder-section-label" style="color:#ff6a00;">必殺技</div>
+                    <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                        <select id="sp-direction" style="flex:2; min-width:160px; color:#ff9a3c; background:#000000; border:1px solid rgba(255,106,0,0.4);">
+                            <option value="">── コマンドを選択 ──</option>
+                            <optgroup label="波動系">
+                                <option value="↓↘→">↓↘→</option>
+                                <option value="↓↙←">↓↙←</option>
+                            </optgroup>
+                            <optgroup label="昇龍系">
+                                <option value="→↓↘">→↓↘</option>
+                            </optgroup>
+                            <optgroup label="タメ系">
+                                <option value="タメ←→">タメ←→</option>
+                                <option value="タメ↓↑">タメ↓↑</option>
+                            </optgroup>
+                            <optgroup label="Zモーション">
+                                <option value="←↙↓↘→">←↙↓↘→</option>
+                                <option value="→↘↓↙←">→↘↓↙←</option>
+                            </optgroup>
+                            <optgroup label="半回転系">
+                                <option value="↓↘→↗">↓↘→↗</option>
+                            </optgroup>
+                            <optgroup label="1回転">
+                                <option value="↓↘→↗↑↖←↙↓">↓↘→↗↑↖←↙↓</option>
+                            </optgroup>
+                        </select>
+                        <select id="sp-strength" style="width:70px; color:#ff9a3c; background:#000000; border:1px solid rgba(255,106,0,0.4);">
+                            <option value="弱">弱</option>
+                            <option value="中">中</option>
+                            <option value="強">強</option>
+                            <option value="OD">OD</option>
+                        </select>
+                        <select id="sp-button" style="flex:1; min-width:80px; color:#ff9a3c; background:#000000; border:1px solid rgba(255,106,0,0.4);">
+                            <option value="P">P（パンチ）</option>
+                            <option value="K">K（キック）</option>
+                        </select>
+                        <button onclick="addSpecialMove()" style="background:rgba(255,106,0,0.2); border:1px solid rgba(255,106,0,0.4); color:#ff6a00; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:0.85rem; white-space:nowrap;">＋追加</button>
+                    </div>
+                </div>
+
+                <!-- その他 -->
+                <div style="margin-bottom:10px;">
+                    <div class="builder-section-label" style="color:var(--text-secondary);">その他</div>
+                    <div style="display:flex; flex-wrap:wrap; gap:5px;">
+                        <button onclick="addCmd('SA1')"     class="cmd-btn sp">SA1</button>
+                        <button onclick="addCmd('SA2')"     class="cmd-btn sp">SA2</button>
+                        <button onclick="addCmd('SA3')"     class="cmd-btn sp">SA3</button>
+                        <button onclick="addCmd('DI')"      class="cmd-btn sp">DI（ドライブインパクト）</button>
+                        <button onclick="addCmd('DR')"      class="cmd-btn sp">DR（ドライブラッシュ）</button>
+                        <button onclick="addCmd('投げ')"    class="cmd-btn sp">投げ</button>
+                        <button onclick="addCmd('→→')"    class="cmd-btn neutral">→→（前ステップ）</button>
+                        <button onclick="addCmd('←←')"    class="cmd-btn neutral">←←（後ステップ）</button>
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; border-top:1px solid rgba(255,255,255,0.08); padding-top:6px;">
+                        <span style="font-size:0.72rem; color:var(--text-muted); align-self:center; margin-right:2px;">強度/Lv:</span>
+                        <button onclick="addSuffix('【弱】')"  class="cmd-btn normal" style="font-size:0.78rem; padding:4px 8px;">【弱】</button>
+                        <button onclick="addSuffix('【中】')"  class="cmd-btn normal" style="font-size:0.78rem; padding:4px 8px;">【中】</button>
+                        <button onclick="addSuffix('【強】')"  class="cmd-btn normal" style="font-size:0.78rem; padding:4px 8px;">【強】</button>
+                        <button onclick="addSuffix('【Lv1】')" class="cmd-btn sp"     style="font-size:0.78rem; padding:4px 8px;">【Lv1】</button>
+                        <button onclick="addSuffix('【Lv2】')" class="cmd-btn sp"     style="font-size:0.78rem; padding:4px 8px;">【Lv2】</button>
+                        <button onclick="addSuffix('【Lv3】')" class="cmd-btn sp"     style="font-size:0.78rem; padding:4px 8px;">【Lv3】</button>
+                    </div>
+                </div>
+
+                <!-- 区切り -->
+                <div>
+                    <div class="builder-section-label" style="color:var(--text-muted);">区切り</div>
+                    <div style="display:flex; gap:5px; align-items:center;">
+                        <button onclick="addSep(' > ')"  class="cmd-btn neutral">&gt;</button>
+                        <button onclick="addSep(' ～ ')" class="cmd-btn neutral">～</button>
+                        <button onclick="addSep(' , ')"  class="cmd-btn neutral">,</button>
+                        <button onclick="removeLastCmd()" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#ef4444; border-radius:6px; padding:5px 12px; cursor:pointer; font-size:0.82rem; white-space:nowrap; margin-left:auto;">⌫ 戻す</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- コマンドプレビュー -->
+        <div class="form-group" style="margin-bottom:8px;">
+            <label>コマンド（編集可）</label>
+            <input type="text" id="combo-command" placeholder="ビルダーで入力するか直接入力" oninput="updateComboPreview()" style="font-family:monospace; font-size:0.95rem; color:var(--color-cyan); background:#0d1b2a; border:1px solid rgba(0,240,255,0.3); padding:10px 12px; border-radius:8px;">
+        </div>
+
+        <!-- 入力確認プレビューバー -->
+        <div class="combo-preview-bar" id="combo-preview-bar">
+            <span>コマンド: <strong id="prev-command">—</strong></span>
+            <span style="color:rgba(255,255,255,0.2);">|</span>
+            <span>ダメージ: <strong id="prev-damage" style="color:#ffd700;">—</strong></span>
+            <span style="color:rgba(255,255,255,0.2);">|</span>
+            <span>後フレーム: <strong id="prev-frames" style="color:var(--color-cyan);">—</strong></span>
+        </div>
+
+        <!-- ダメージ・コンボ後フレーム 共通電卓 -->
+        <div class="form-group" style="margin-bottom:12px;">
+            <!-- 切り替えタブ -->
+            <div style="display:flex; gap:0; margin-bottom:8px; border-radius:8px; overflow:hidden; border:1px solid rgba(255,255,255,0.12);">
+                <button id="calc-tab-damage" onclick="switchCalcTab('damage')"
+                    style="flex:1; padding:8px 4px; border:none; background:rgba(255,200,0,0.25); color:#ffd700; cursor:pointer; font-size:0.85rem; font-weight:700;">ダメージ</button>
+                <button id="calc-tab-frame" onclick="switchCalcTab('frame')"
+                    style="flex:1; padding:8px 4px; border:none; background:rgba(0,0,0,0.2); color:rgba(0,240,255,0.45); cursor:pointer; font-size:0.85rem;">コンボ後フレーム</button>
+            </div>
+            <!-- 隠し入力（saveCombo が参照） -->
+            <input type="hidden" id="combo-damage" value="">
+            <input type="hidden" id="combo-frames" value="">
+            <!-- 電卓本体 -->
+            <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px;">
+                <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+                    <input type="text" id="calc-display" placeholder="---" readonly
+                        style="flex:1; font-family:monospace; font-size:1.1rem; font-weight:700; color:#ffd700; text-align:center; background:rgba(0,0,0,0.3); border:1px solid rgba(255,200,0,0.25); border-radius:6px; padding:8px;">
+                    <button onclick="calcClear()" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#ef4444; border-radius:6px; padding:8px 14px; cursor:pointer; font-size:0.85rem; white-space:nowrap;">C</button>
+                </div>
+                <!-- ダメージ用キーパッド（標準テンキー配置） -->
+                <div id="calc-damage-pad" style="display:grid; grid-template-columns:repeat(3,1fr) auto; gap:5px;">
+                    <button onclick="calcInput('7')" class="frame-btn">7</button>
+                    <button onclick="calcInput('8')" class="frame-btn">8</button>
+                    <button onclick="calcInput('9')" class="frame-btn">9</button>
+                    <button onclick="calcBackspace()" class="frame-btn del" style="width:44px;">⌫</button>
+                    <button onclick="calcInput('4')" class="frame-btn">4</button>
+                    <button onclick="calcInput('5')" class="frame-btn">5</button>
+                    <button onclick="calcInput('6')" class="frame-btn">6</button>
+                    <button class="frame-btn" style="visibility:hidden;"></button>
+                    <button onclick="calcInput('1')" class="frame-btn">1</button>
+                    <button onclick="calcInput('2')" class="frame-btn">2</button>
+                    <button onclick="calcInput('3')" class="frame-btn">3</button>
+                    <button class="frame-btn" style="visibility:hidden;"></button>
+                    <button onclick="calcInput('0')" class="frame-btn" style="grid-column:span 3;">0</button>
+                </div>
+                <!-- フレーム用キーパッド -->
+                <div id="calc-frame-pad" style="display:none; grid-template-columns:repeat(4,1fr); gap:5px;">
+                    <button onclick="calcInput('+')" class="frame-btn sign plus">＋有利</button>
+                    <button onclick="calcInput('-')" class="frame-btn sign minus">－不利</button>
+                    <button onclick="calcInput('±')" class="frame-btn sign">±0</button>
+                    <button onclick="calcBackspace()" class="frame-btn del">⌫</button>
+                    <button onclick="calcInput('7')" class="frame-btn">7</button>
+                    <button onclick="calcInput('8')" class="frame-btn">8</button>
+                    <button onclick="calcInput('9')" class="frame-btn">9</button>
+                    <button onclick="calcInput('D')" class="frame-btn sp2">D</button>
+                    <button onclick="calcInput('4')" class="frame-btn">4</button>
+                    <button onclick="calcInput('5')" class="frame-btn">5</button>
+                    <button onclick="calcInput('6')" class="frame-btn">6</button>
+                    <button class="frame-btn" style="visibility:hidden;"></button>
+                    <button onclick="calcInput('1')" class="frame-btn">1</button>
+                    <button onclick="calcInput('2')" class="frame-btn">2</button>
+                    <button onclick="calcInput('3')" class="frame-btn">3</button>
+                    <button onclick="calcInput('0')" class="frame-btn">0</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:12px;">
+            <label>メモ</label>
+            <textarea id="combo-memo" rows="2" placeholder="難易度・状況・注意点など"></textarea>
+        </div>
+    </div>
+</div>
+
+<!-- DATE RANGE CLEAR MODAL -->
+<div class="modal-overlay hidden" id="date-clear-modal">
+    <div class="modal-box">
+        <h3><i class="fas fa-calendar-times"></i> 期間を指定してクリア</h3>
+        <div class="form-group" style="margin-bottom:12px;">
+            <label><i class="fas fa-calendar"></i> 開始日</label>
+            <input type="date" id="clear-date-from">
+        </div>
+        <div class="form-group" style="margin-bottom:12px;">
+            <label><i class="fas fa-calendar"></i> 終了日</label>
+            <input type="date" id="clear-date-to">
+        </div>
+        <div id="clear-preview" style="font-size:0.85rem; color:var(--color-cyan); margin-bottom:12px; min-height:20px;"></div>
+        <div class="modal-actions">
+            <button class="btn btn-primary" style="flex:1; background:linear-gradient(135deg,#ef4444,#b91c1c);" onclick="execDateClear()"><i class="fas fa-trash"></i> 削除する</button>
+            <button class="btn btn-secondary" style="flex:1" onclick="closeDateClearModal()"><i class="fas fa-times"></i> キャンセル</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay hidden" id="edit-modal">
+    <div class="modal-box">
+        <h3><i class="fas fa-edit"></i> 記録を編集</h3>
+        <input type="hidden" id="edit-id">
+        <div class="form-group" style="margin-bottom:12px;" id="edit-lp-group">
+            <label><i class="fas fa-star"></i> LP</label>
+            <input type="number" id="edit-lp" min="0">
+        </div>
+        <div class="form-group" style="margin-bottom:12px; display:none;" id="edit-cm-group">
+            <label><i class="fas fa-flag"></i> 勝敗（勝ち / 負け 数）</label>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <input type="number" id="edit-cm-win" min="0" value="0" style="width:100%;">
+                <span style="color:var(--text-secondary); font-weight:700; white-space:nowrap;">勝 /</span>
+                <input type="number" id="edit-cm-lose" min="0" value="0" style="width:100%;">
+                <span style="color:var(--text-secondary); font-weight:700; white-space:nowrap;">負</span>
+            </div>
+        </div>
+        <div class="form-group" style="margin-bottom:12px;">
+            <label><i class="fas fa-comment"></i> メモ</label>
+            <textarea id="edit-memo" rows="2"></textarea>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-primary" style="flex:1" onclick="saveEdit()"><i class="fas fa-check"></i> 保存</button>
+            <button class="btn btn-secondary" style="flex:1" onclick="closeModal()"><i class="fas fa-times"></i> キャンセル</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// =====================================================================
+// DATA LAYER
+// =====================================================================
+function saveRecords(recs) {
+    fetch(`/api/${currentRoom}/records`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(recs)
+    }).catch(console.error);
+}
+
+// =====================================================================
+// STATE
+// =====================================================================
+let records = [];
+let currentMode = 'LR';
+let currentResult = 'WIN';
+let chartInstance = null;
+let chartRange = 'all';
+let cmChartView = 'winrate';
+let editingId = null;
+
+// =====================================================================
+// RANK UTILS
+// =====================================================================
+const RANK_ORDER = ['rookie','iron','bronze','silver','gold','platinum','diamond','master'];
+const RANK_LABELS = {
+    rookie:'Rookie', iron:'Iron', bronze:'Bronze', silver:'Silver',
+    gold:'Gold', platinum:'Platinum', diamond:'Diamond', master:'Master'
+};
+const RANK_EMOJIS = {
+    rookie:'🔘', iron:'🟫', bronze:'🥉', silver:'🥈',
+    gold:'🥇', platinum:'💎', diamond:'💠', master:'👑'
+};
+const RANK_NEXT_LP = {
+    rookie:1000, iron:3000, bronze:6000, silver:10000,
+    gold:15000, platinum:21000, diamond:28000, master:null
+};
+function getRankClass(rank) { return `rb-${rank}`; }
+
+// =====================================================================
+// FORM INIT
+// =====================================================================
+document.getElementById('input-date').value = new Date().toISOString().split('T')[0];
+document.getElementById('combo-panel').style.display = 'none';
+document.getElementById('memo-panel').style.display = 'none';
+
+function updateLPPreview() {
+    const lp = parseInt(document.getElementById('input-lp').value);
+    if (isNaN(lp)) { document.getElementById('lp-diff-preview').textContent = ''; return; }
+    const char = document.getElementById('input-char').value;
+    const last = char ? getLastLPForChar(char) : getLastLP();
+    if (last === null) { document.getElementById('lp-diff-preview').textContent = ''; return; }
+    const diff = lp - last;
+    const sign = diff >= 0 ? '+' : '';
+    document.getElementById('lp-diff-preview').textContent = `前回比: ${sign}${diff} LP`;
+}
+
+function getLastLP() {
+    const lpRecs = records.filter(r => r.lp != null);
+    if (lpRecs.length === 0) return null;
+    return lpRecs[lpRecs.length - 1].lp;
+}
+
+function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('btn-lr').classList.toggle('active', mode === 'LR');
+    document.getElementById('btn-mr').classList.toggle('active', mode === 'MR');
+    document.getElementById('btn-cm').classList.toggle('active', mode === 'CM');
+
+    const isCM = mode === 'CM';
+    document.getElementById('rank-lp-section').classList.toggle('hidden', isCM);
+    document.getElementById('quick-section').classList.toggle('hidden', isCM);
+    document.getElementById('cm-fields').classList.toggle('hidden', !isCM);
+
+    // LP/MR ラベル切替
+    const lpLabelEl = document.getElementById('lp-label-text');
+    if (lpLabelEl) lpLabelEl.textContent = mode === 'MR' ? '現在のMR' : '現在のLP';
+
+    // MRは常にMASTER固定
+    if (mode === 'MR') {
+        document.getElementById('input-rank').value = 'master';
+        document.getElementById('input-rank').disabled = true;
+    } else {
+        document.getElementById('input-rank').disabled = false;
+    }
+
+    // LRモードはLP入力でランク・★を自動表示
+    if (mode === 'LR') {
+        const lp = parseInt(document.getElementById('input-lp').value);
+        if (!isNaN(lp)) {
+            const rank = getRankFromLP(lp);
+            if (rank) document.getElementById('input-rank').value = rank;
+        }
+    }
+
+    // チャート切替 (CMはグラフ非表示)
+    const titleEl = document.getElementById('chart-title');
+    if (!isCM) {
+        titleEl.innerHTML = '<i class="fas fa-chart-area"></i> LP推移グラフ';
+        renderChart();
+    } else {
+        if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+        const ctx = document.getElementById('lp-chart').getContext('2d');
+        renderEmptyChart(ctx, 'カスタムモードはグラフ表示なし');
+    }
+}
+
+function setResult(result) {
+    currentResult = result;
+    document.getElementById('btn-win').classList.toggle('active', result === 'WIN');
+    document.getElementById('btn-lose').classList.toggle('active', result === 'LOSE');
+}
+
+function addQuickLP(delta) {
+    const input = document.getElementById('input-lp');
+    const current = parseInt(input.value) || 0;
+    const next = Math.max(0, current + delta);
+    input.value = next;
+    const disp = document.getElementById('lp-calc-display');
+    if (disp) disp.textContent = next > 0 ? next.toLocaleString() : '---';
+    // ランク自動更新（LRモード）
+    if (currentMode === 'LR') {
+        const rank = getRankFromLP(next);
+        if (rank) document.getElementById('input-rank').value = rank;
+    }
+    updateLPPreview();
+}
+
+// =====================================================================
+// RANK AUTO-DETECT FROM LP (LRモード専用・★レベル対応)
+// =====================================================================
+// ROOKIE ★1〜5（200刻み）: 0〜800
+// IRON   ★1〜5（400刻み）: 1000〜2600
+// BRONZE ★1〜5（400刻み）: 3000〜4600
+// SILVER ★1〜5（800刻み）: 5000〜8200 (※8200超はGOLD下限9000まで空白)
+// GOLD   ★1〜5（800刻み）: 9000〜12200
+// PLATINUM★1〜5（1200刻み）:13000〜17800
+// DIAMOND ★1〜5（1200刻み）:19000〜23800
+// MASTER: 25000〜
+const LP_RANK_THRESHOLDS = [
+    { rank: 'rookie',   min: 0,     max: 998 },
+    { rank: 'iron',     min: 1000,  max: 2998 },
+    { rank: 'bronze',   min: 3000,  max: 4998 },
+    { rank: 'silver',   min: 5000,  max: 8998 },
+    { rank: 'gold',     min: 9000,  max: 12998 },
+    { rank: 'platinum', min: 13000, max: 18998 },
+    { rank: 'diamond',  min: 19000, max: 24999 },
+    { rank: 'master',   min: 25000, max: Infinity },
+];
+
+// LRモード用：LP → ランク名（★付き）の詳細ラベル
+const LR_STAR_THRESHOLDS = [
+    // ROOKIE ★1〜5（200刻み）
+    { label: 'ROOKIE ★1', min: 0,   max: 199 },
+    { label: 'ROOKIE ★2', min: 200, max: 399 },
+    { label: 'ROOKIE ★3', min: 400, max: 599 },
+    { label: 'ROOKIE ★4', min: 600, max: 799 },
+    { label: 'ROOKIE ★5', min: 800, max: 999 },
+    // IRON ★1〜5（400刻み）
+    { label: 'IRON ★1', min: 1000, max: 1399 },
+    { label: 'IRON ★2', min: 1400, max: 1799 },
+    { label: 'IRON ★3', min: 1800, max: 2199 },
+    { label: 'IRON ★4', min: 2200, max: 2599 },
+    { label: 'IRON ★5', min: 2600, max: 2999 },
+    // BRONZE ★1〜5（400刻み）
+    { label: 'BRONZE ★1', min: 3000, max: 3399 },
+    { label: 'BRONZE ★2', min: 3400, max: 3799 },
+    { label: 'BRONZE ★3', min: 3800, max: 4199 },
+    { label: 'BRONZE ★4', min: 4200, max: 4599 },
+    { label: 'BRONZE ★5', min: 4600, max: 4999 },
+    // SILVER ★1〜5（800刻み）
+    { label: 'SILVER ★1', min: 5000, max: 5799 },
+    { label: 'SILVER ★2', min: 5800, max: 6599 },
+    { label: 'SILVER ★3', min: 6600, max: 7399 },
+    { label: 'SILVER ★4', min: 7400, max: 8199 },
+    { label: 'SILVER ★5', min: 8200, max: 8999 },
+    // GOLD ★1〜5（800刻み）
+    { label: 'GOLD ★1', min: 9000,  max: 9799 },
+    { label: 'GOLD ★2', min: 9800,  max: 10599 },
+    { label: 'GOLD ★3', min: 10600, max: 11399 },
+    { label: 'GOLD ★4', min: 11400, max: 12199 },
+    { label: 'GOLD ★5', min: 12200, max: 12999 },
+    // PLATINUM ★1〜5（1200刻み）
+    { label: 'PLATINUM ★1', min: 13000, max: 14199 },
+    { label: 'PLATINUM ★2', min: 14200, max: 15399 },
+    { label: 'PLATINUM ★3', min: 15400, max: 16599 },
+    { label: 'PLATINUM ★4', min: 16600, max: 17799 },
+    { label: 'PLATINUM ★5', min: 17800, max: 18999 },
+    // DIAMOND ★1〜5（1200刻み）
+    { label: 'DIAMOND ★1', min: 19000, max: 20199 },
+    { label: 'DIAMOND ★2', min: 20200, max: 21399 },
+    { label: 'DIAMOND ★3', min: 21400, max: 22599 },
+    { label: 'DIAMOND ★4', min: 22600, max: 23799 },
+    { label: 'DIAMOND ★5', min: 23800, max: 24999 },
+    // MASTER
+    { label: 'MASTER',     min: 25000, max: Infinity },
+];
+
+function getNextStarInfo(lp) {
+    const idx = LR_STAR_THRESHOLDS.findIndex(r => lp >= r.min && lp <= r.max);
+    if (idx < 0 || idx >= LR_STAR_THRESHOLDS.length - 1) return null; // MASTER or unknown
+    const next = LR_STAR_THRESHOLDS[idx + 1];
+    return { nextLabel: next.label, remaining: next.min - lp };
+}
+
+function getRankFromLP(lp) {
+    const found = LP_RANK_THRESHOLDS.find(r => lp >= r.min && lp <= r.max);
+    return found ? found.rank : null;
+}
+
+function getStarLabelFromLP(lp) {
+    const found = LR_STAR_THRESHOLDS.find(r => lp >= r.min && lp <= r.max);
+    return found ? found.label : null;
+}
+
+// =====================================================================
+// CHAR LP MEMORY (per-char last LP for LR/MR)
+// =====================================================================
+let charLPMemory = {};
+function saveCharLPMemory(mem) {
+    fetch(`/api/${currentRoom}/char_lp_memory`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(mem)
+    }).catch(console.error);
+}
+
+function onCharChange() {
+    const char = document.getElementById('input-char').value;
+    if (!char || currentMode === 'CM') return;
+    if (currentMode === 'MR') {
+        document.getElementById('input-rank').value = 'master';
+        document.getElementById('input-rank').disabled = true;
+        return;
+    }
+    const mem = charLPMemory[char];
+    if (mem != null) {
+        document.getElementById('input-lp').value = mem;
+        const rank = getRankFromLP(mem);
+        if (rank) document.getElementById('input-rank').value = rank;
+        // ★ラベル表示
+        const star = getStarLabelFromLP(mem);
+        document.getElementById('lp-diff-preview').textContent = star ? `現在: ${star}` : '';
+        updateLPPreview();
+    } else {
+        document.getElementById('input-lp').value = '';
+        document.getElementById('input-rank').value = '';
+        document.getElementById('lp-diff-preview').textContent = '';
+    }
+}
+
+document.getElementById('input-char').addEventListener('change', onCharChange);
+// 最後に選択したキャラを保持
+document.getElementById('input-char').addEventListener('change', function() {
+    if (this.value) localStorage.setItem('lastChar', this.value);
+});
+
+// LP input → auto rank（LRのみ）
+document.getElementById('input-lp').addEventListener('input', function() {
+    const lp = parseInt(this.value);
+    if (!isNaN(lp) && currentMode === 'LR') {
+        const rank = getRankFromLP(lp);
+        if (rank) document.getElementById('input-rank').value = rank;
+        const star = getStarLabelFromLP(lp);
+        // ★ラベルをプレビューに表示（前回比と合成）
+        const char = document.getElementById('input-char').value;
+        const last = char ? getLastLPForChar(char) : getLastLP();
+        if (last !== null) {
+            const diff = lp - last;
+            const sign = diff >= 0 ? '+' : '';
+            document.getElementById('lp-diff-preview').textContent =
+                (star ? `${star}  ` : '') + `前回比: ${sign}${diff} LP`;
+        } else {
+            document.getElementById('lp-diff-preview').textContent = star || '';
+        }
+    } else if (currentMode === 'MR') {
+        updateLPPreview();
+    }
+});
+
+// =====================================================================
+// SAVE RECORD
+// =====================================================================
+
+// ── LP電卓（対戦履歴入力） ──────────────────────────────
+function lpCalcInput(val) {
+    const disp = document.getElementById('lp-calc-display');
+    const hidden = document.getElementById('input-lp');
+    if (!disp || !hidden) return;
+    const cur = disp.textContent === '---' ? '' : disp.textContent.replace(/,/g, '');
+    const next = (cur === '0' || cur === '') ? val : cur + val;
+    disp.textContent = parseInt(next).toLocaleString();
+    hidden.value = next;
+    // 自動ランク更新 + プレビュー
+    if (currentMode === 'LR') {
+        const lp = parseInt(next);
+        const rank = getRankFromLP(lp);
+        if (rank) document.getElementById('input-rank').value = rank;
+        const star = getStarLabelFromLP(lp);
+        const char = document.getElementById('input-char').value;
+        const last = char ? getLastLPForChar(char) : null;
+        if (last !== null) {
+            const diff = lp - last;
+            const sign = diff >= 0 ? '+' : '';
+            document.getElementById('lp-diff-preview').textContent =
+                (star ? star + '  ' : '') + '前回比: ' + sign + diff + ' LP';
+        } else {
+            document.getElementById('lp-diff-preview').textContent = star || '';
+        }
+    }
+}
+
+function lpCalcBackspace() {
+    const disp = document.getElementById('lp-calc-display');
+    const hidden = document.getElementById('input-lp');
+    if (!disp || !hidden) return;
+    const cur = (disp.textContent === '---' ? '' : disp.textContent).replace(/,/g, '');
+    if (cur.length <= 1) {
+        disp.textContent = '---';
+        hidden.value = '';
+        document.getElementById('lp-diff-preview').textContent = '';
+        return;
+    }
+    const next = cur.slice(0, -1);
+    disp.textContent = parseInt(next).toLocaleString();
+    hidden.value = next;
+    // ランク自動更新（LRモード）
+    if (currentMode === 'LR') {
+        const rank = getRankFromLP(parseInt(next));
+        if (rank) document.getElementById('input-rank').value = rank;
+    }
+}
+
+function lpCalcClear() {
+    const disp   = document.getElementById('lp-calc-display');
+    const hidden = document.getElementById('input-lp');
+    if (disp)   disp.textContent = '---';
+    if (hidden) hidden.value = '';
+    const prev = document.getElementById('lp-diff-preview');
+    if (prev)   prev.textContent = '';
+}
+
+function saveRecord() {
+    const date  = document.getElementById('input-date').value;
+    const char  = document.getElementById('input-char').value;
+    const rank  = document.getElementById('input-rank').value;
+    const lp    = parseInt(document.getElementById('input-lp').value);
+    const memo  = document.getElementById('input-memo').value.trim();
+
+    if (!date || !char) {
+        showToast('⚠️ 日付・キャラは必須です', '#ef4444'); return;
+    }
+
+    if (currentMode === 'CM') {
+        const win  = parseInt(document.getElementById('input-cm-win').value) || 0;
+        const lose = parseInt(document.getElementById('input-cm-lose').value) || 0;
+        if (win === 0 && lose === 0) {
+            showToast('⚠️ 勝敗数を入力してください', '#ef4444'); return;
+        }
+        const opponent = document.getElementById('input-opponent').value || null;
+        let saved = 0;
+        for (let i = 0; i < win; i++) {
+            records.push({ id: Date.now() + saved++, date, char, rank: 'custom', lp: null, diff: 0, memo, mode: 'CM', result: 'WIN', opponent });
+        }
+        for (let i = 0; i < lose; i++) {
+            records.push({ id: Date.now() + saved++, date, char, rank: 'custom', lp: null, diff: 0, memo, mode: 'CM', result: 'LOSE', opponent });
+        }
+        saveRecords(records);
+        showToast(`✅ カスタムマッチ ${win}勝${lose}敗 を保存しました！`);
+        document.getElementById('input-cm-win').value = '0';
+        document.getElementById('input-cm-lose').value = '0';
+        const _winD  = document.getElementById('cm-win-display');
+        const _loseD = document.getElementById('cm-lose-display');
+        const _calcD = document.getElementById('cm-calc-display');
+        if (_winD)  _winD.textContent  = '0';
+        if (_loseD) _loseD.textContent = '0';
+        if (_calcD) _calcD.textContent = '0';
+        // 対戦相手キャラは保持（クリアしない）
+        document.getElementById('input-memo').value = '';
+    } else {
+        const finalRank = currentMode === 'MR' ? 'master' : rank;
+        if (!finalRank || isNaN(lp)) {
+            showToast('⚠️ ランク・LPを入力してください', '#ef4444'); return;
+        }
+        const last = getLastLPForChar(char);
+        const diff = last !== null ? lp - last : 0;
+        records.push({ id: Date.now(), date, char, rank: finalRank, lp, diff, memo, mode: currentMode, result: null, opponent: null });
+        charLPMemory[char] = lp;
+        saveCharLPMemory(charLPMemory);
+        saveRecords(records);
+        showToast('✅ 記録を保存しました！');
+        document.getElementById('input-memo').value = '';
+        document.getElementById('lp-diff-preview').textContent = '';
+    }
+    updateAll();
+}
+
+function getLastLPForChar(char) {
+    const recs = records.filter(r => r.char === char && r.lp != null);
+    return recs.length > 0 ? recs[recs.length - 1].lp : null;
+}
+
+// =====================================================================
+// UPDATE UI
+// =====================================================================
+function updateAll() {
+    updateDashboard();
+    renderChart();
+    renderTable();
+    updateCharFilter();
+}
+
+function updateDashboard() {
+    const lpRecs = records.filter(r => r.lp != null);
+    if (lpRecs.length === 0 && records.length === 0) {
+        document.getElementById('current-rank-name').textContent = '記録なし';
+        document.getElementById('current-lp-display').textContent = '— LP';
+        document.getElementById('current-rank-icon').textContent = '—';
+        return;
+    }
+
+    const last = lpRecs.length > 0 ? lpRecs[lpRecs.length - 1] : null;
+    if (last) {
+        document.getElementById('current-rank-name').textContent = RANK_LABELS[last.rank] || last.rank;
+        document.getElementById('current-lp-display').textContent = `${last.lp.toLocaleString()} LP`;
+        document.getElementById('current-rank-icon').textContent = RANK_EMOJIS[last.rank] || '—';
+        // 次のランクまであとXXXP
+        const _nxt = getNextStarInfo(last.lp);
+        const _nxtEl = document.getElementById('next-rank-progress');
+        if (_nxtEl) _nxtEl.textContent = _nxt ? `${_nxt.nextLabel} まで あと ${_nxt.remaining.toLocaleString()} P` : '';
+        // ポイント変動率
+        const prev = lpRecs.length >= 2 ? lpRecs[lpRecs.length - 2] : null;
+        const diffEl = document.getElementById('current-lp-diff');
+        if (diffEl) {
+            if (prev && prev.lp != null) {
+                const d = last.lp - prev.lp;
+                const sign = d >= 0 ? '+' : '';
+                diffEl.textContent = `前回比: ${sign}${d.toLocaleString()} LP`;
+                diffEl.style.color = d > 0 ? 'var(--color-cyan)' : d < 0 ? '#ef4444' : 'var(--text-muted)';
+            } else {
+                diffEl.textContent = '';
+            }
+        }
+    }
+}
+
+// =====================================================================
+// CHART
+// =====================================================================
+function setChartRange(range, btn) {
+    chartRange = range;
+    document.querySelectorAll('#lp-chart-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderChart();
+}
+
+function setCMChartView(view, btn) {
+    cmChartView = view;
+    document.querySelectorAll('.cm-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderChart();
+}
+
+function renderChart() {
+    if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+    if (currentMode === 'CM') {
+        renderCMChart();
+    } else {
+        renderLPChart();
+    }
+}
+
+function renderLPChart() {
+    // LR/MRそれぞれのモードの記録のみ表示（CMは除外）
+    let data = [...records].filter(r => r.lp != null && r.mode === currentMode)
+                           .sort((a, b) => a.date.localeCompare(b.date));
+    if (chartRange !== 'all') {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - parseInt(chartRange));
+        const cutoffStr = cutoff.toISOString().split('T')[0];
+        data = data.filter(r => r.date >= cutoffStr);
+    }
+    const ctx = document.getElementById('lp-chart').getContext('2d');
+    if (data.length === 0) {
+        renderEmptyChart(ctx, 'LP記録がありません');
+        return;
+    }
+    chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map(r => r.date),
+            datasets: [{
+                label: 'LP', data: data.map(r => r.lp),
+                borderColor: '#00f0ff',
+                backgroundColor: 'rgba(0, 240, 255, 0.06)',
+                pointBackgroundColor: '#ff6a00', pointBorderColor: '#ff6a00',
+                pointRadius: 5, pointHoverRadius: 7,
+                borderWidth: 2, fill: true, tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1f2937', titleColor: '#9aa0b0', bodyColor: '#f0f2f7',
+                    borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+                    callbacks: {
+                        label: ctx => {
+                            const lp = ctx.parsed.y;
+                            const star = currentMode === 'LR' ? getStarLabelFromLP(lp) : null;
+                            return star ? ` ${lp.toLocaleString()} LP（${star}）` : ` ${lp.toLocaleString()} LP`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { ticks: { color: '#626875', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+                y: { ticks: { color: '#626875', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } }
+            }
+        }
+    });
+}
+
+function renderCMChart() {
+    const cmRecs = records.filter(r => r.mode === 'CM' && r.result);
+    const ctx = document.getElementById('lp-chart').getContext('2d');
+
+    // --- サマリーバー更新 ---
+    const totalWin  = cmRecs.filter(r => r.result === 'WIN').length;
+    const totalLose = cmRecs.filter(r => r.result === 'LOSE').length;
+    const totalAll  = totalWin + totalLose;
+    const totalRate = totalAll > 0 ? Math.round((totalWin / totalAll) * 100) : 0;
+    const summaryEl = document.getElementById('cm-summary');
+    if (summaryEl) {
+        summaryEl.innerHTML = totalAll === 0 ? '' :
+            `<span style="color:#00f0ff;font-weight:700;">${totalWin}勝</span>` +
+            `<span style="color:var(--text-muted);margin:0 6px;">/</span>` +
+            `<span style="color:#ef4444;font-weight:700;">${totalLose}敗</span>` +
+            `<span style="color:var(--text-secondary);margin-left:10px;font-size:0.85rem;">勝率 ${totalRate}%</span>`;
+    }
+
+    if (cmChartView === 'winrate') {
+        // 日付別 勝ち・負け 積み上げ棒グラフ
+        const byDate = {};
+        cmRecs.forEach(r => {
+            if (!byDate[r.date]) byDate[r.date] = { win: 0, lose: 0 };
+            r.result === 'WIN' ? byDate[r.date].win++ : byDate[r.date].lose++;
+        });
+        const dates = Object.keys(byDate).sort();
+
+        if (dates.length === 0) {
+            renderEmptyChart(ctx, 'カスタムマッチの記録がありません');
+            return;
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: dates,
+                datasets: [
+                    {
+                        label: '勝ち',
+                        data: dates.map(d => byDate[d].win),
+                        backgroundColor: 'rgba(0,240,255,0.7)',
+                        borderColor: '#00f0ff',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        stack: 'stack'
+                    },
+                    {
+                        label: '負け',
+                        data: dates.map(d => byDate[d].lose),
+                        backgroundColor: 'rgba(239,68,68,0.6)',
+                        borderColor: '#ef4444',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        stack: 'stack'
+                    }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: { color: '#9aa0b0', font: { size: 12 }, boxWidth: 14 }
+                    },
+                    tooltip: {
+                        backgroundColor: '#1f2937', titleColor: '#9aa0b0', bodyColor: '#f0f2f7',
+                        borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+                        callbacks: {
+                            afterBody: (items) => {
+                                const d = dates[items[0].dataIndex];
+                                const { win, lose } = byDate[d];
+                                const t = win + lose;
+                                const rate = t > 0 ? Math.round((win / t) * 100) : 0;
+                                return [`合計: ${t}戦  勝率: ${rate}%`];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        ticks: { color: '#626875', font: { size: 11 } },
+                        grid: { color: 'rgba(255,255,255,0.04)' }
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: { color: '#626875', font: { size: 11 }, stepSize: 1 },
+                        grid: { color: 'rgba(255,255,255,0.04)' }
+                    }
+                }
+            }
+        });
+
+    } else {
+        // 対戦相手別 勝ち・負け 横積み上げ棒グラフ
+        const byOpp = {};
+        cmRecs.forEach(r => {
+            const opp = r.opponent || '不明';
+            if (!byOpp[opp]) byOpp[opp] = { win: 0, lose: 0 };
+            r.result === 'WIN' ? byOpp[opp].win++ : byOpp[opp].lose++;
+        });
+        const opps = Object.keys(byOpp).sort((a, b) => {
+            return (byOpp[b].win + byOpp[b].lose) - (byOpp[a].win + byOpp[a].lose);
+        });
+
+        if (opps.length === 0) {
+            renderEmptyChart(ctx, '対戦相手の記録がありません');
+            return;
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: opps,
+                datasets: [
+                    {
+                        label: '勝ち',
+                        data: opps.map(o => byOpp[o].win),
+                        backgroundColor: 'rgba(0,240,255,0.7)',
+                        borderColor: '#00f0ff',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        stack: 'stack'
+                    },
+                    {
+                        label: '負け',
+                        data: opps.map(o => byOpp[o].lose),
+                        backgroundColor: 'rgba(239,68,68,0.6)',
+                        borderColor: '#ef4444',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        stack: 'stack'
+                    }
+                ]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: { color: '#9aa0b0', font: { size: 12 }, boxWidth: 14 }
+                    },
+                    tooltip: {
+                        backgroundColor: '#1f2937', titleColor: '#9aa0b0', bodyColor: '#f0f2f7',
+                        borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+                        callbacks: {
+                            afterBody: (items) => {
+                                const o = opps[items[0].dataIndex];
+                                const { win, lose } = byOpp[o];
+                                const t = win + lose;
+                                const rate = t > 0 ? Math.round((win / t) * 100) : 0;
+                                return [`合計: ${t}戦  勝率: ${rate}%`];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: { color: '#626875', font: { size: 11 }, stepSize: 1 },
+                        grid: { color: 'rgba(255,255,255,0.04)' }
+                    },
+                    y: {
+                        stacked: true,
+                        ticks: { color: '#f0f2f7', font: { size: 11 } },
+                        grid: { color: 'rgba(255,255,255,0.04)' }
+                    }
+                }
+            }
+        });
+    }
+}
+
+function renderEmptyChart(ctx, msg) {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.fillStyle = '#626875';
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(msg, ctx.canvas.width / 2, ctx.canvas.height / 2);
+}
+
+// =====================================================================
+// TABLE
+// =====================================================================
+// =====================================================================
+// PAGINATION
+// =====================================================================
+const PAGE_SIZE = 20;
+let currentPage = 1;
+
+function renderTable() {
+    const filterChar = document.getElementById('filter-char').value;
+    const filterMode = document.getElementById('filter-mode').value;
+
+    let filtered = [...records].reverse();
+    if (filterChar) filtered = filtered.filter(r => r.char === filterChar);
+    if (filterMode) filtered = filtered.filter(r => r.mode === filterMode);
+
+    const tbody = document.getElementById('history-tbody');
+    const thead = document.querySelector('.history-table thead tr');
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td class="empty-state" colspan="9">記録がありません</td></tr>`;
+        document.getElementById('pagination-bar').innerHTML = '';
+        return;
+    }
+
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const pageData = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+    tbody.innerHTML = pageData.map(r => {
+        const diffClass = r.diff > 0 ? 'plus' : r.diff < 0 ? 'minus' : '';
+        const diffText  = r.mode === 'CM' ? '—' : (r.diff > 0 ? `+${r.diff}` : `${r.diff}`);
+        const lpText    = r.mode === 'CM' ? '—' : (r.lp != null ? r.lp.toLocaleString() : '—');
+        const rankText  = r.mode === 'CM' ? '—' : (RANK_LABELS[r.rank] || r.rank);
+        const rankBadge = r.mode === 'CM' ? '' : `<span class="rank-badge-inline ${getRankClass(r.rank)}">${(RANK_LABELS[r.rank]||'C').charAt(0)}</span>`;
+        const modeClass = r.mode === 'LR' ? 'lr' : r.mode === 'MR' ? 'mr' : 'cm';
+        const resultBadge = r.mode === 'CM' && r.result
+            ? `<span class="mode-badge" style="${r.result==='WIN'?'background:rgba(0,240,255,0.1);color:#00f0ff;border:1px solid rgba(0,240,255,0.2)':'background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.2)'}">${r.result==='WIN'?'勝':'負'}</span>`
+            : '';
+        const opponentText = r.mode === 'CM' ? (r.opponent || '—') : '—';
+
+        return `
+        <tr>
+            <td>${r.date}</td>
+            <td class="char-cell">${r.char}</td>
+            <td><span class="mode-badge ${modeClass}">${r.mode}</span></td>
+            <td><div class="rank-cell-content">${rankBadge}${rankText}</div></td>
+            <td>${lpText}</td>
+            <td class="diff-cell ${diffClass}">${r.mode === 'CM' ? resultBadge : diffText}</td>
+            <td>${r.mode === 'CM' ? opponentText : '<span style="color:var(--text-muted)">—</span>'}</td>
+            <td class="memo-cell">${r.memo || '—'}</td>
+            <td class="action-cell">
+                <button class="btn-action edit" onclick="openEdit(${r.id})" title="編集"><i class="fas fa-pencil"></i></button>
+                <button class="btn-action delete" onclick="deleteRecord(${r.id})" title="削除"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
+
+    renderPagination(totalPages);
+}
+
+function renderPagination(totalPages) {
+    const bar = document.getElementById('pagination-bar');
+    if (totalPages <= 1) { bar.innerHTML = ''; return; }
+
+    let html = '';
+    const btnStyle = (active) => `style="min-width:34px; height:34px; border-radius:6px; border:1px solid ${active ? 'var(--color-cyan)' : 'rgba(255,255,255,0.1)'}; background:${active ? 'rgba(0,240,255,0.15)' : 'rgba(255,255,255,0.04)'}; color:${active ? 'var(--color-cyan)' : 'var(--text-secondary)'}; cursor:pointer; font-size:0.85rem; font-weight:${active ? '700' : '400'}; transition:all .15s;"`;
+
+    // 前へ
+    html += `<button ${btnStyle(false)} onclick="goPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹</button>`;
+
+    // ページ番号
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || Math.abs(i - currentPage) <= 2) {
+            html += `<button ${btnStyle(i === currentPage)} onclick="goPage(${i})">${i}</button>`;
+        } else if (Math.abs(i - currentPage) === 3) {
+            html += `<span style="color:var(--text-muted); padding:0 4px;">…</span>`;
+        }
+    }
+
+    // 次へ
+    html += `<button ${btnStyle(false)} onclick="goPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>›</button>`;
+    html += `<span style="color:var(--text-muted); font-size:0.82rem; margin-left:6px;">${currentPage} / ${totalPages} ページ</span>`;
+
+    bar.innerHTML = html;
+}
+
+function goPage(page) {
+    const filterChar = document.getElementById('filter-char').value;
+    const filterMode = document.getElementById('filter-mode').value;
+    let filtered = [...records].reverse();
+    if (filterChar) filtered = filtered.filter(r => r.char === filterChar);
+    if (filterMode) filtered = filtered.filter(r => r.mode === filterMode);
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+    if (page < 1 || page > totalPages) return;
+    currentPage = page;
+    renderTable();
+    document.querySelector('.history-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// =====================================================================
+// VIEW SWITCH (対戦 / コンボトラッカー)
+// =====================================================================
+let currentView = 'match';
+
+function setView(view) {
+    currentView = view;
+    const isMatch = view === 'match';
+    const isCombo = view === 'combo';
+    const isMemo  = view === 'memo';
+    document.getElementById('btn-view-match').classList.toggle('active', isMatch);
+    document.getElementById('btn-view-combo').classList.toggle('active', isCombo);
+    document.getElementById('btn-view-memo').classList.toggle('active', isMemo);
+
+    // 対戦関連パネルの表示切り替え
+    const matchEls = document.querySelectorAll('.dashboard-summary, .main-layout, .glass-panel:not(#combo-panel):not(#memo-panel)');
+    matchEls.forEach(el => el.style.display = isMatch ? '' : 'none');
+
+    const cp = document.getElementById('combo-panel');
+    const mp = document.getElementById('memo-panel');
+    cp.style.display = isCombo ? '' : 'none';
+    mp.style.display = isMemo ? '' : 'none';
+
+    if (isCombo) {
+        const ml = document.querySelector('.main-layout');
+        if (ml) cp.style.maxWidth = getComputedStyle(ml).maxWidth;
+        renderComboTable();
+    }
+    if (isMemo) renderNoteList();
+}
+
+// =====================================================================
+// =====================================================================
+// =====================================================================
+// 特殊技・フレーム電卓
+// =====================================================================
+let selectedSpDir = null;
+const SP_DIR_IDS = ['↖','↑','↗','←','','→','↙','↓','↘'];
+
+function clearSpDirActive() {
+    SP_DIR_IDS.forEach(d => {
+        const id = d === '' ? 'spdir-N' : 'spdir-' + d;
+        const btn = document.getElementById(id);
+        if (btn) btn.classList.remove('active');
+    });
+}
+
+function selectSpDir(dir) {
+    selectedSpDir = dir;
+    clearSpDirActive();
+    const id = dir === '' ? 'spdir-N' : 'spdir-' + dir;
+    const btn = document.getElementById(id);
+    if (btn) btn.classList.add('active');
+}
+
+function addSpecialTech(tech) {
+    const prefix = (selectedSpDir !== null && selectedSpDir !== undefined) ? selectedSpDir : '';
+    addCmd(prefix + tech);
+    selectedSpDir = null;
+    clearSpDirActive();
+}
+
+function toggleTCPanel() {
+    const p = document.getElementById('tc-panel');
+    if (p) p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+// TC関連
+const TC_MOVES = ['弱P','中P','強P','弱K','中K','強K'];
+const TC_DIRS  = ['','↖','↑','↗','←','→','↙','↓','↘'];
+
+function initTCPanel() {
+    const container = document.getElementById('tc-inputs-container');
+    if (!container) return;
+    container.innerHTML = '';
+    addTCInputRow();
+    addTCInputRow();
+}
+
+function addTCInputRow() {
+    const container = document.getElementById('tc-inputs-container');
+    if (!container) return;
+    const row = document.createElement('div');
+    row.className = 'tc-row';
+    const idx = container.children.length + 1;
+
+    const label = document.createElement('span');
+    label.style.cssText = 'font-size:0.72rem; color:#ffd700; min-width:20px;';
+    label.textContent = idx + '：';
+
+    const dirSel = document.createElement('select');
+    dirSel.className = 'tc-dir-sel';
+    TC_DIRS.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = d === '' ? '—' : d;
+        dirSel.appendChild(opt);
+    });
+
+    const sep = document.createElement('span');
+    sep.style.cssText = 'color:rgba(255,200,0,0.6); font-size:0.8rem;';
+    sep.textContent = '＋';
+
+    const moveSel = document.createElement('select');
+    moveSel.className = 'tc-move-sel';
+    TC_MOVES.forEach((m, i) => {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = m;
+        if (i === 0) opt.selected = true;
+        moveSel.appendChild(opt);
+    });
+
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '×';
+    delBtn.style.cssText = 'background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); color:#ef4444; border-radius:4px; padding:2px 7px; cursor:pointer; font-size:0.8rem;';
+    delBtn.onclick = () => {
+        container.removeChild(row);
+        // ラベル番号を更新
+        [...container.children].forEach((r, i) => {
+            const lbl = r.querySelector('span');
+            if (lbl) lbl.textContent = (i + 1) + '：';
+        });
+    };
+
+    row.appendChild(label);
+    row.appendChild(dirSel);
+    row.appendChild(sep);
+    row.appendChild(moveSel);
+    row.appendChild(delBtn);
+    container.appendChild(row);
+}
+
+function addTCCmd() {
+    const container = document.getElementById('tc-inputs-container');
+    if (!container) return;
+    const rows = [...container.children];
+    if (rows.length === 0) return;
+    const parts = rows.map(row => {
+        const sels = row.querySelectorAll('select');
+        const dir  = sels[0] ? sels[0].value : '';
+        const move = sels[1] ? sels[1].value : '';
+        return dir + move;
+    });
+    addCmd('TC(' + parts.join('-') + ')');
+    document.getElementById('tc-panel').style.display = 'none';
+}
+
+
+// ── コンボプレビューバー更新 ──────────────────────────────
+function updateComboPreview() {
+    const cmd = (document.getElementById('combo-command')?.value || '').trim();
+    const dmg = (document.getElementById('combo-damage')?.value || '').trim();
+    const frm = (document.getElementById('combo-frames')?.value || '').trim();
+    const pc  = document.getElementById('prev-command');
+    const pd  = document.getElementById('prev-damage');
+    const pf  = document.getElementById('prev-frames');
+    if (pc) pc.textContent = cmd || '—';
+    if (pd) pd.textContent = dmg || '—';
+    if (pf) pf.textContent = frm || '—';
+}
+
+
+// ── キャラカラー ──────────────────────────────────────────
+// キャラ選択フォント統一色（背景が濃いため明るい色を使用）
+function applyCharColors(selId) {
+    const sel = document.getElementById(selId);
+    if (!sel) return;
+    [...sel.options].forEach(opt => {
+        if (opt.value) opt.style.color = '#ffd700';
+    });
+}
+
+// ── 共通電卓（ダメージ / コンボ後フレーム） ──────────────────
+let calcMode = 'damage'; // 'damage' | 'frame'
+let calcSign = '';
+
+function switchCalcTab(mode) {
+    calcMode = mode;
+    const isDamage = mode === 'damage';
+    // タブ外観
+    const tabD = document.getElementById('calc-tab-damage');
+    const tabF = document.getElementById('calc-tab-frame');
+    if (tabD) { tabD.style.background = isDamage ? 'rgba(255,200,0,0.25)' : 'rgba(0,0,0,0.2)'; tabD.style.color = isDamage ? '#ffd700' : 'rgba(255,200,0,0.4)'; tabD.style.fontWeight = isDamage ? '700' : '400'; }
+    if (tabF) { tabF.style.background = !isDamage ? 'rgba(0,240,255,0.12)' : 'rgba(0,0,0,0.2)'; tabF.style.color = !isDamage ? 'var(--color-cyan)' : 'rgba(0,240,255,0.45)'; tabF.style.fontWeight = !isDamage ? '700' : '400'; }
+    // キーパッド表示切替
+    const padD = document.getElementById('calc-damage-pad');
+    const padF = document.getElementById('calc-frame-pad');
+    if (padD) padD.style.display = isDamage ? 'grid' : 'none';
+    if (padF) padF.style.display = !isDamage ? 'grid' : 'none';
+    // ディスプレイ色切替
+    const disp = document.getElementById('calc-display');
+    if (disp) { disp.style.color = isDamage ? '#ffd700' : 'var(--color-cyan)'; disp.style.borderColor = isDamage ? 'rgba(255,200,0,0.25)' : 'rgba(0,240,255,0.2)'; }
+    // 現在値を表示
+    const target = document.getElementById(isDamage ? 'combo-damage' : 'combo-frames');
+    if (disp && target) disp.value = target.value;
+    calcSign = '';
+    if (!isDamage) _updateFrameColor();
+}
+
+function _updateFrameColor() {
+    if (calcMode !== 'frame') return;
+    const disp = document.getElementById('calc-display');
+    if (!disp) return;
+    const v = disp.value;
+    const rest = v.startsWith('D ') ? v.slice(2) : v;
+    if (rest.startsWith('+')) disp.style.color = '#4fc3f7';
+    else if (rest.startsWith('-')) disp.style.color = '#ef4444';
+    else disp.style.color = 'var(--color-cyan)';
+}
+
+function calcInput(val) {
+    const disp = document.getElementById('calc-display');
+    const target = document.getElementById(calcMode === 'damage' ? 'combo-damage' : 'combo-frames');
+    if (!disp || !target) return;
+    if (calcMode === 'frame') {
+        const cur = disp.value;
+        const hasD  = cur === 'D' || cur.startsWith('D ');
+        const rest  = hasD ? cur.slice(cur === 'D' ? 1 : 2) : cur;
+        let newRest = rest;
+
+        if (val === 'D') {
+            if (hasD) { disp.value = rest; target.value = rest; }
+            else { const v2 = rest ? 'D ' + rest : 'D'; disp.value = v2; target.value = v2; }
+            _updateFrameColor(); updateComboPreview(); return;
+        }
+        if (val === '+') {
+            if (/^\d+$/.test(rest))                   newRest = '+' + rest;
+            else if (!rest || rest === '+' || rest === '-') { newRest = '+'; calcSign = '+'; }
+            else                                        newRest = '+' + rest.replace(/^[+\-]/, '');
+            calcSign = '+';
+        } else if (val === '-') {
+            if (/^\d+$/.test(rest))                   newRest = '-' + rest;
+            else if (!rest || rest === '+' || rest === '-') { newRest = '-'; calcSign = '-'; }
+            else                                        newRest = '-' + rest.replace(/^[+\-]/, '');
+            calcSign = '-';
+        } else if (val === '±') {
+            newRest = '±0'; calcSign = '';
+        } else {
+            // 数字
+            if (!rest || rest === '+' || rest === '-') newRest = (rest || calcSign || '') + val;
+            else if (rest === '±0')               newRest = (calcSign || '') + val;
+            else                                        newRest = rest + val;
+        }
+        const next = hasD ? 'D ' + newRest : newRest;
+        disp.value = next; target.value = next;
+        _updateFrameColor();
+    } else {
+        // ダメージ: 数字のみ
+        if (val === '00') {
+            const cur = disp.value;
+            const next = (cur === '' || cur === '0') ? '0' : cur + '00';
+            disp.value = next; target.value = next;
+        } else {
+            const cur = disp.value;
+            const next = (cur === '0' || cur === '') ? val : cur + val;
+            disp.value = next; target.value = next;
+        }
+    }
+    updateComboPreview();
+}
+
+function calcBackspace() {
+    const disp = document.getElementById('calc-display');
+    const target = document.getElementById(calcMode === 'damage' ? 'combo-damage' : 'combo-frames');
+    if (!disp || !target) return;
+    const cur = disp.value;
+    if (cur.length <= 1) { disp.value = ''; target.value = ''; calcSign = ''; return; }
+    const next = cur.slice(0, -1);
+    disp.value = next; target.value = next;
+    if (['+','-'].includes(next)) calcSign = next;
+    updateComboPreview();
+}
+
+function calcClear() {
+    const disp = document.getElementById('calc-display');
+    const target = document.getElementById(calcMode === 'damage' ? 'combo-damage' : 'combo-frames');
+    if (disp) disp.value = '';
+    if (target) target.value = '';
+    calcSign = '';
+}
+
+// 後方互換 (既存呼び出しが残っていても壊れないように)
+function frameInput(val) { calcMode = 'frame'; calcInput(val); }
+function frameBackspace() { calcMode = 'frame'; calcBackspace(); }
+function clearFrames() { calcMode = 'frame'; calcClear(); }
+
+// =====================================================================
+// MEMO
+// =====================================================================
+let notes = [];
+let selectedNoteId = null;
+let _noteSaveTimer = null;
+
+function showMemoSaveStatus(status) {
+    const el = document.getElementById('memo-save-status');
+    if (!el) return;
+    if (status === 'saving') { el.textContent = '\u{1F4BE} 保存中...'; el.style.color = 'var(--text-muted)'; }
+    else if (status === 'ok') {
+        el.textContent = '✓ 保存済み'; el.style.color = '#4caf50';
+        clearTimeout(_noteSaveTimer);
+        _noteSaveTimer = setTimeout(() => { el.textContent = ''; }, 3000);
+    } else { el.textContent = '❌ 保存エラー'; el.style.color = '#ef4444'; }
+}
+
+async function saveNotes() {
+    if (!currentRoom) return;
+    showMemoSaveStatus('saving');
+    try {
+        const res = await fetch(`/api/${currentRoom}/notes`, {
+            method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(notes)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        showMemoSaveStatus('ok');
+    } catch(e) { console.error('メモ保存エラー:', e); showMemoSaveStatus('error'); }
+}
+
+async function loadNotes() {
+    if (!currentRoom) return;
+    try {
+        const res = await fetch(`/api/${currentRoom}/notes`);
+        notes = await res.json();
+    } catch(e) { notes = []; }
+    renderNoteList();
+}
+
+function addNote() {
+    const text = (document.getElementById('memo-text')?.value || '').trim();
+    if (!text) { showToast('⚠️ 本文を入力してください', '#ef4444'); return; }
+    const tags = [..._memoTags];
+    const note = {
+        id: Date.now(), text, tags,
+        char: document.getElementById('memo-char')?.value || '',
+        date: new Date().toISOString().split('T')[0],
+        createdAt: new Date().toISOString()
+    };
+    notes.unshift(note);
+    saveNotes();
+    document.getElementById('memo-text').value = '';
+    document.getElementById('memo-char').value = '';
+    _memoTags = [];
+    document.getElementById('memo-tag-dropdown')?.classList.remove('open');
+    _buildMemoTagMenu();
+    renderNoteList();
+    showToast('✅ メモを保存しました！');
+}
+
+function deleteNote(id) {
+    if (!confirm('このメモを削除しますか？')) return;
+    notes = notes.filter(n => n.id !== id);
+    if (selectedNoteId === id) { selectedNoteId = null; renderNoteDetail(); }
+    saveNotes(); renderNoteList();
+    showToast('\u{1F5D1}️ メモを削除しました');
+}
+
+function selectNote(id) {
+    selectedNoteId = id;
+    renderNoteList();
+    renderNoteDetail();
+}
+
+// ── メモ用タグ定義 ────────────────────────────────────────
+const MEMO_TAG_DEFS = [
+    { key:'課題',  cls:'issue',     color:'#f87171' },
+    { key:'気づき', cls:'notice',   color:'#fbbf24' },
+    { key:'対策',  cls:'counter-m', color:'#60a5fa' },
+    { key:'目標',  cls:'goal',      color:'#4ade80' },
+];
+let _memoTags = [];
+
+function _buildMemoTagMenu() {
+    const menu = document.getElementById('memo-tag-menu');
+    if (!menu) return;
+    menu.innerHTML = MEMO_TAG_DEFS.map(t => `
+        <div class="tag-dropdown-item${_memoTags.includes(t.key) ? ' selected' : ''}"
+             onclick="_toggleMemoTag('${t.key}')">
+            <span class="td-check">${_memoTags.includes(t.key) ? '✓' : ''}</span>
+            <span class="tag-badge ${t.cls}" style="font-size:0.78rem;">${t.key}</span>
+        </div>`).join('') + `
+        <div class="tag-dropdown-footer">
+            <button class="td-btn-confirm" onclick="confirmMemoTagDropdown()">決定</button>
+            <button class="td-btn-clear"   onclick="clearMemoTagDropdown()">クリア</button>
+        </div>`;
+    const badges = document.getElementById('memo-tag-badges');
+    if (badges) {
+        badges.innerHTML = _memoTags.length
+            ? _memoTags.map(k => { const d = MEMO_TAG_DEFS.find(t=>t.key===k); return `<span class="tag-badge ${d?.cls||''}">${k}</span>`; }).join('')
+            : '';
+    }
+    const lbl = document.getElementById('memo-tag-label');
+    if (lbl) {
+        lbl.textContent = _memoTags.length ? `${_memoTags.length}件選択中` : 'タグを選択...';
+        lbl.style.color  = _memoTags.length ? '#f0f2f7' : 'var(--text-muted)';
+    }
+}
+function _toggleMemoTag(key) {
+    _memoTags = _memoTags.includes(key) ? _memoTags.filter(k=>k!==key) : [..._memoTags, key];
+    _buildMemoTagMenu();
+}
+function confirmMemoTagDropdown() {
+    document.getElementById('memo-tag-dropdown')?.classList.remove('open');
+}
+function clearMemoTagDropdown() {
+    _memoTags = []; _buildMemoTagMenu();
+}
+function toggleMemoTagDropdown(e) {
+    e.stopPropagation();
+    const dd = document.getElementById('memo-tag-dropdown');
+    if (!dd) return;
+    if (dd.classList.toggle('open')) _buildMemoTagMenu();
+}
+// 外クリックでは閉じない（決定ボタン専用）
+
+const MEMO_TAG_STYLE = { '課題':'issue', '気づき':'notice', '対策':'counter-m', '目標':'goal' };
+
+function renderNoteList() {
+    const el = document.getElementById('memo-list');
+    if (!el) return;
+    const q = (document.getElementById('memo-search')?.value || '').toLowerCase();
+    let list = notes;
+    if (q) list = list.filter(n =>
+        n.text.toLowerCase().includes(q) ||
+        (n.char||'').toLowerCase().includes(q) ||
+        (n.tags||[]).some(t => t.toLowerCase().includes(q))
+    );
+    if (notes.length === 0) {
+        el.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem; text-align:center; padding:20px;">メモがありません</div>';
+        return;
+    }
+    if (list.length === 0) {
+        el.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem; text-align:center; padding:20px;">一致するメモがありません</div>';
+        return;
+    }
+    el.innerHTML = list.map(n => {
+        const tagsHtml = (n.tags||[]).map(t =>
+            `<span class="tag-badge ${MEMO_TAG_STYLE[t]||''}" style="font-size:0.65rem;">${t}</span>`
+        ).join(' ');
+        const charStr = n.char ? ` · ${n.char}` : '';
+        const isSel = n.id === selectedNoteId;
+        return `<div class="memo-list-item${isSel ? ' selected' : ''}" onclick="selectNote(${n.id})">
+            <div class="memo-date">${n.date}${charStr} ${tagsHtml}</div>
+            <div class="memo-preview">${n.text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+        </div>`;
+    }).join('');
+}
+
+function renderNoteDetail() {
+    const el = document.getElementById('memo-detail');
+    if (!el) return;
+    const note = notes.find(n => n.id === selectedNoteId);
+    if (!note) {
+        el.style.display = 'flex'; el.style.alignItems = 'center'; el.style.justifyContent = 'center';
+        el.innerHTML = '<span style="color:var(--text-muted); font-size:0.85rem;">← メモを選択すると詳細が表示されます</span>';
+        return;
+    }
+    el.style.display = 'block'; el.style.alignItems = ''; el.style.justifyContent = '';
+    const tagsHtml = (note.tags||[]).map(t =>
+        `<span class="tag-badge ${MEMO_TAG_STYLE[t]||''}">${t}</span>`
+    ).join(' ');
+    const charStr = note.char
+        ? `<span style="color:var(--color-cyan); font-size:0.85rem;">${note.char}</span>` : '';
+    el.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+            <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+                <span style="font-size:0.78rem; color:var(--text-muted);">${note.date}</span>
+                ${charStr} ${tagsHtml}
+            </div>
+            <button onclick="deleteNote(${note.id})" class="btn-action delete" title="削除"><i class="fas fa-trash"></i></button>
+        </div>
+        <div style="color:#f0f2f7; font-size:0.92rem; line-height:1.65; white-space:pre-wrap; word-break:break-word;">${note.text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+}
+
+// =====================================================================
+// COMBO TRACKER
+// =====================================================================
+let combos = [];
+let _comboSaveTimer = null;
+
+function showComboSaveStatus(status) {
+    // status: 'saving' | 'ok' | 'error'
+    const el = document.getElementById('combo-save-status');
+    if (!el) return;
+    if (status === 'saving') {
+        el.textContent = '💾 保存中...';
+        el.style.color = 'var(--text-muted)';
+    } else if (status === 'ok') {
+        el.textContent = '✓ 保存済み';
+        el.style.color = '#4caf50';
+        clearTimeout(_comboSaveTimer);
+        _comboSaveTimer = setTimeout(() => { el.textContent = ''; }, 3000);
+    } else {
+        el.textContent = '❌ 保存エラー（通信確認）';
+        el.style.color = '#ef4444';
+    }
+}
+
+async function saveCombos() {
+    if (!currentRoom) return;
+    showComboSaveStatus('saving');
+    try {
+        const res = await fetch(`/api/${currentRoom}/combos`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(combos)
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        showComboSaveStatus('ok');
+    } catch (e) {
+        console.error('コンボ保存エラー:', e);
+        showComboSaveStatus('error');
+    }
+}
+
+// ブラウザを閉じる直前にも保存を試みる
+window.addEventListener('beforeunload', () => {
+    if (currentRoom && combos.length > 0) {
+        navigator.sendBeacon(
+            `/api/${currentRoom}/combos`,
+            new Blob([JSON.stringify(combos)], {type: 'application/json'})
+        );
+    }
+    if (currentRoom && notes.length > 0) {
+        navigator.sendBeacon(
+            `/api/${currentRoom}/notes`,
+            new Blob([JSON.stringify(notes)], {type: 'application/json'})
+        );
+    }
+});
+
+// ── 基本技（CR + 方向対応） ──────────────────────────────
+let crActive = false;
+
+function toggleCR() {
+    crActive = !crActive;
+    const btn = document.getElementById('btn-CR-basic');
+    if (btn) {
+        btn.style.background   = crActive ? 'rgba(255,106,0,0.35)' : 'rgba(255,106,0,0.1)';
+        btn.style.borderColor  = crActive ? 'rgba(255,106,0,0.7)'  : 'rgba(255,106,0,0.3)';
+        btn.textContent        = crActive ? 'CR ✓' : 'CR';
+        btn.style.boxShadow    = crActive ? '0 0 8px rgba(255,106,0,0.4)' : 'none';
+    }
+}
+
+function addBasicTech(move) {
+    const prefix = (selectedSpDir !== null && selectedSpDir !== undefined) ? selectedSpDir : '';
+    const text   = crActive ? ('CR ' + prefix + move) : (prefix + move);
+    addCmd(text);
+    selectedSpDir = null;
+    clearSpDirActive();
+    if (crActive) {
+        crActive = false;
+        const btn = document.getElementById('btn-CR-basic');
+        if (btn) {
+            btn.style.background  = 'rgba(255,106,0,0.1)';
+            btn.style.borderColor = 'rgba(255,106,0,0.3)';
+            btn.textContent       = 'CR';
+            btn.style.boxShadow   = 'none';
+        }
+    }
+}
+
+// コマンドフィールドに文字列を追記
+function addCmd(text) {
+    const el = document.getElementById('combo-command');
+    const cur = el.value;
+    // 直前が区切りでなければ自動で > を挿入
+    if (cur && !cur.endsWith(' > ') && !cur.endsWith(' ～ ') && !cur.endsWith(' , ') && !cur.endsWith(' ')) {
+        el.value = cur + ' > ' + text;
+    } else {
+        el.value = cur + text;
+    }
+    el.focus();
+}
+
+function addSuffix(text) {
+    // 強度/Lvはスペースなしで直前のトークンに結合（SA2【中】形式）
+    const el = document.getElementById('combo-command');
+    const cur = el.value;
+    // 末尾の ' > ' や空白トリム
+    const trimmed = cur.replace(/ > $/, '').replace(/ $/, '');
+    el.value = trimmed + text;
+    el.focus();
+    updateComboPreview();
+}
+
+
+
+// ── カスタム勝敗電卓 ──────────────────────────────
+let cmCalcTab = 'win';
+
+function setCMCalcTab(tab) {
+    cmCalcTab = tab;
+    const winBtn  = document.getElementById('cm-tab-win');
+    const loseBtn = document.getElementById('cm-tab-lose');
+    if (winBtn) {
+        winBtn.style.background = tab === 'win' ? 'rgba(0,240,255,0.2)' : 'rgba(0,0,0,0.2)';
+        winBtn.style.color      = tab === 'win' ? 'var(--color-cyan)'   : 'rgba(0,240,255,0.4)';
+    }
+    if (loseBtn) {
+        loseBtn.style.background = tab === 'lose' ? 'rgba(239,68,68,0.2)' : 'rgba(0,0,0,0.2)';
+        loseBtn.style.color      = tab === 'lose' ? '#ef4444' : 'rgba(239,68,68,0.4)';
+    }
+    const disp = document.getElementById('cm-calc-display');
+    if (disp) {
+        const val = document.getElementById(tab === 'win' ? 'input-cm-win' : 'input-cm-lose')?.value || '0';
+        disp.textContent  = val;
+        disp.style.color  = tab === 'win' ? 'var(--color-cyan)' : '#ef4444';
+    }
+}
+
+function cmCalcInput(val) {
+    const disp = document.getElementById('cm-calc-display');
+    if (!disp) return;
+    const cur = disp.textContent === '0' ? '' : disp.textContent;
+    const num = Math.min(999, parseInt(cur + val) || 0);
+    disp.textContent = num.toString();
+    _cmCalcSync(num);
+}
+
+function cmCalcBackspace() {
+    const disp = document.getElementById('cm-calc-display');
+    if (!disp) return;
+    const cur  = disp.textContent;
+    const next = cur.length <= 1 ? '0' : cur.slice(0, -1);
+    const num  = parseInt(next) || 0;
+    disp.textContent = next;
+    _cmCalcSync(num);
+}
+
+function cmCalcClear() {
+    const disp = document.getElementById('cm-calc-display');
+    if (disp) disp.textContent = '0';
+    _cmCalcSync(0);
+}
+
+function _cmCalcSync(num) {
+    const hiddenId  = cmCalcTab === 'win' ? 'input-cm-win'  : 'input-cm-lose';
+    const displayId = cmCalcTab === 'win' ? 'cm-win-display' : 'cm-lose-display';
+    const hidden    = document.getElementById(hiddenId);
+    const displayEl = document.getElementById(displayId);
+    if (hidden)    hidden.value        = num;
+    if (displayEl) displayEl.textContent = num;
+}
+
+function addSep(sep) {
+    const el = document.getElementById('combo-command');
+    // 末尾に区切りがすでにあれば置換
+    const cur = el.value.trimEnd();
+    if (cur.endsWith('>') || cur.endsWith('～') || cur.endsWith(',')) {
+        el.value = cur.slice(0, -1) + sep.trim() + ' ';
+    } else {
+        el.value = el.value + sep;
+    }
+    el.focus();
+}
+
+function addSpecialMove() {
+    const dir = document.getElementById('sp-direction').value;
+    const str = document.getElementById('sp-strength').value;
+    const btn = document.getElementById('sp-button').value;
+    const parts = [dir, str !== 'なし' ? str : '', btn !== 'なし' ? btn : ''].filter(Boolean);
+    const text = parts.join('');
+    if (text) addCmd(text);
+}
+
+function removeLastCmd() {
+    const el = document.getElementById('combo-command');
+    // 末尾の " > XXXX" または最後のトークンを削除
+    let val = el.value;
+    // 末尾の区切りを消す
+    val = val.replace(/ (>|～|,) $/, '');
+    // 末尾のトークンを消す
+    const lastSep = Math.max(val.lastIndexOf(' > '), val.lastIndexOf(' ～ '), val.lastIndexOf(' , '));
+    if (lastSep >= 0) {
+        el.value = val.slice(0, lastSep);
+    } else {
+        el.value = '';
+    }
+    el.focus();
+}
+
+// ── コンボタグ定義（将来の追加もここだけ）─────────────────
+const COMBO_TAG_DEFS = [
+    { key:'カウンター',         cls:'counter',  color:'#4fc3f7' },
+    { key:'パニッシュカウンター', cls:'pc',       color:'#ff6a00' },
+    { key:'画面端',             cls:'corner',   color:'#ffb347' },
+    { key:'通常時',             cls:'normal',   color:'#aaa'    },
+    { key:'D-Rev',              cls:'drev',     color:'#a78bfa' },
+];
+let _selectedTags = [];
+
+function _buildTagMenu() {
+    const menu = document.getElementById('tag-dropdown-menu');
+    if (!menu) return;
+    menu.innerHTML = COMBO_TAG_DEFS.map(t => `
+        <div class="tag-dropdown-item${_selectedTags.includes(t.key) ? ' selected' : ''}"
+             onclick="_toggleTagItem('${t.key}')">
+            <span class="td-check">${_selectedTags.includes(t.key) ? '✓' : ''}</span>
+            <span class="tag-badge ${t.cls}" style="font-size:0.78rem;">${t.key}</span>
+        </div>`).join('') + `
+        <div class="tag-dropdown-footer">
+            <button class="td-btn-confirm" onclick="confirmTagDropdown()">決定</button>
+            <button class="td-btn-clear"   onclick="clearTagDropdown()">クリア</button>
+        </div>`;
+    // バッジ更新
+    const badges = document.getElementById('tag-selected-badges');
+    if (badges) {
+        badges.innerHTML = _selectedTags.length
+            ? _selectedTags.map(k => {
+                const d = COMBO_TAG_DEFS.find(t => t.key === k);
+                return `<span class="tag-badge ${d?.cls||''}">${k}</span>`;
+              }).join('')
+            : '';
+    }
+    // ラベル更新
+    const lbl = document.getElementById('tag-dropdown-label');
+    if (lbl) {
+        lbl.textContent = _selectedTags.length ? `${_selectedTags.length}件選択中` : 'タグを選択...';
+        lbl.style.color  = _selectedTags.length ? '#f0f2f7' : 'var(--text-muted)';
+    }
+}
+
+function _toggleTagItem(key) {
+    if (_selectedTags.includes(key)) {
+        _selectedTags = _selectedTags.filter(k => k !== key);
+    } else {
+        _selectedTags = [..._selectedTags, key];
+    }
+    _buildTagMenu();
+}
+
+function confirmTagDropdown() {
+    document.getElementById('combo-tag-dropdown')?.classList.remove('open');
+}
+function clearTagDropdown() {
+    _selectedTags = [];
+    _buildTagMenu();
+}
+
+function toggleTagDropdown(e) {
+    e.stopPropagation();
+    const dd = document.getElementById('combo-tag-dropdown');
+    if (!dd) return;
+    const isOpen = dd.classList.toggle('open');
+    if (isOpen) _buildTagMenu();
+}
+// 外クリックでは閉じない（決定ボタン専用）
+
+const COMBO_TAG_STYLE = {
+    'カウンター': 'counter', 'パニッシュカウンター': 'pc',
+    '画面端': 'corner', '通常時': 'normal', 'D-Rev': 'drev'
+};
+function _frameColor(frames) {
+    const rest = frames.startsWith('D ') ? frames.slice(2) : frames;
+    return rest.startsWith('+') ? '#4fc3f7' : rest.startsWith('-') ? '#ef4444' : 'var(--text-secondary)';
+}
+
+// フィルタードロップダウン用選択タグ
+let _filterTags = [];
+
+function _buildFilterTagMenu() {
+    const menu = document.getElementById('filter-tag-menu');
+    if (!menu) return;
+    menu.innerHTML = COMBO_TAG_DEFS.map(t => `
+        <div class="tag-dropdown-item${_filterTags.includes(t.key) ? ' selected' : ''}"
+             onclick="_toggleFilterTag('${t.key}')">
+            <span class="td-check">${_filterTags.includes(t.key) ? '✓' : ''}</span>
+            <span class="tag-badge ${t.cls}" style="font-size:0.78rem;">${t.key}</span>
+        </div>`).join('') + `
+        <div class="tag-dropdown-footer">
+            <button class="td-btn-confirm" onclick="confirmFilterTagDropdown()">決定</button>
+            <button class="td-btn-clear"   onclick="clearFilterTagDropdown()">クリア</button>
+        </div>`;
+    const badges = document.getElementById('filter-tag-badges');
+    if (badges) {
+        badges.innerHTML = _filterTags.map(k => {
+            const d = COMBO_TAG_DEFS.find(t => t.key === k);
+            return `<span class="tag-badge ${d?.cls||''}" style="font-size:0.72rem;">${k}</span>`;
+        }).join('');
+    }
+    const lbl = document.getElementById('filter-tag-label');
+    if (lbl) {
+        lbl.textContent = _filterTags.length ? `${_filterTags.length}件絞込中` : 'タグ絞り込み';
+        lbl.style.color  = _filterTags.length ? 'var(--color-cyan)' : 'var(--text-muted)';
+    }
+}
+
+function _toggleFilterTag(key) {
+    if (_filterTags.includes(key)) {
+        _filterTags = _filterTags.filter(k => k !== key);
+    } else {
+        _filterTags = [..._filterTags, key];
+    }
+    _buildFilterTagMenu();
+}
+
+function confirmFilterTagDropdown() {
+    document.getElementById('ct-tag-filter-dd')?.classList.remove('open');
+    renderComboTable();
+}
+function clearFilterTagDropdown() {
+    _filterTags = [];
+    _buildFilterTagMenu();
+    renderComboTable();
+}
+
+function toggleFilterTagDropdown(e) {
+    e.stopPropagation();
+    const dd = document.getElementById('ct-tag-filter-dd');
+    if (!dd) return;
+    const isOpen = dd.classList.toggle('open');
+    if (isOpen) _buildFilterTagMenu();
+}
+// 外クリックでは閉じない（決定ボタン専用）
+
+function _getCheckedTags() { return _filterTags; }
+
+function renderComboTable() {
+    const filterChar = document.getElementById('ct-char-filter')?.value || '';
+    const filterTags = _getCheckedTags(); // OR検索
+    const tbody = document.getElementById('combo-tbody');
+
+    let filtered = filterChar ? combos.filter(c => c.char === filterChar) : combos;
+    if (filterTags.length > 0) {
+        filtered = filtered.filter(c => filterTags.some(t => (c.tags || []).includes(t)));
+    }
+
+    if (!filterChar) {
+        tbody.innerHTML = `<tr><td class="empty-state" colspan="6">上のセレクトからキャラを選択してください。</td></tr>`;
+        return;
+    }
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td class="empty-state" colspan="6">${filterChar} のコンボが登録されていません。「コンボ追加」から登録してください。</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = filtered.map((c) => {
+        const idx = combos.indexOf(c);
+        const tagHtml = (c.tags || []).map(t =>
+            `<span class="tag-badge ${COMBO_TAG_STYLE[t] || ''}">${t}</span>`
+        ).join(' ');
+        const fv = c.frames || '';
+        return `
+        <tr>
+            <td style="white-space:nowrap;">${tagHtml || '—'}</td>
+            <td><input type="text" value="${(c.command||'').replace(/"/g,'&quot;')}" onchange="updateComboField(${idx},'command',this.value)" class="combo-inline-input" style="color:var(--color-cyan); font-family:monospace; font-size:0.82rem;"></td>
+            <td><input type="text" value="${(c.damage||'').replace(/"/g,'&quot;')}" onchange="updateComboField(${idx},'damage',this.value)" class="combo-inline-input" style="text-align:center;"></td>
+            <td><input type="text" value="${fv.replace(/"/g,'&quot;')}" onchange="updateComboField(${idx},'frames',this.value)" class="combo-inline-input" style="text-align:center; font-family:monospace; color:${_frameColor(fv)};"></td>
+            <td><input type="text" value="${(c.memo||'').replace(/"/g,'&quot;')}" onchange="updateComboField(${idx},'memo',this.value)" class="combo-inline-input" style="color:var(--text-secondary); font-size:0.82rem;"></td>
+            <td style="text-align:center;">
+                <button class="btn-action delete" onclick="deleteCombo(${idx})" title="削除"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function updateComboField(idx, field, value) {
+    if (!combos[idx]) return;
+    combos[idx][field] = value;
+    saveCombos();
+}
+
+function addCombo() {
+    // キャラフィルターで選択中のキャラをモーダルにプリセット
+    const selectedChar = document.getElementById('ct-char-filter')?.value || '';
+    document.getElementById('combo-edit-id').value = '';
+    document.getElementById('combo-char').value = selectedChar;
+    document.getElementById('combo-command').value = '';
+    document.getElementById('combo-damage').value = '';
+    document.getElementById('combo-frames').value = '';
+    document.getElementById('combo-memo').value = '';
+    const dispEl = document.getElementById('calc-display');
+    if (dispEl) dispEl.value = '';
+    calcSign = ''; calcMode = 'damage'; selectedSpDir = null; crActive = false;
+    const crBtn = document.getElementById('btn-CR-basic');
+    if (crBtn) { crBtn.style.background='rgba(255,106,0,0.1)'; crBtn.style.borderColor='rgba(255,106,0,0.3)'; crBtn.textContent='CR'; crBtn.style.boxShadow='none'; }
+    // タグリセット
+    _selectedTags = [];
+    document.getElementById('combo-tag-dropdown')?.classList.remove('open');
+    _buildTagMenu();
+    // プレビューリセット
+    updateComboPreview();
+    switchCalcTab('damage');
+    initTCPanel();
+    document.getElementById('combo-modal').classList.remove('hidden');
+}
+
+function saveCombo() {
+    const tags = [..._selectedTags];
+    const combo = {
+        id:      Date.now(),
+        char:    document.getElementById('combo-char').value,
+        command: document.getElementById('combo-command').value.trim(),
+        damage:  document.getElementById('combo-damage').value.trim(),
+        frames:  document.getElementById('combo-frames').value.trim(),
+        memo:    document.getElementById('combo-memo').value.trim(),
+        tags:    tags,
+    };
+    if (!combo.char) {
+        showToast('⚠️ キャラを選択してください', '#ef4444'); return;
+    }
+    combos.push(combo);
+    saveCombos();
+    closeComboModal();
+    const ctFilter = document.getElementById('ct-char-filter');
+    if (ctFilter) ctFilter.value = combo.char;
+    renderComboTable();
+    showToast('✅ コンボを登録しました！');
+}
+
+function deleteCombo(idx) {
+    if (!confirm('このコンボを削除しますか？')) return;
+    combos.splice(idx, 1);
+    saveCombos();
+    renderComboTable();
+    showToast('🗑️ コンボを削除しました');
+}
+
+function closeComboModal() {
+    document.getElementById('combo-modal').classList.add('hidden');
+}
+
+document.getElementById('combo-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeComboModal();
+});
+
+function updateCharFilter() {
+    const chars = [...new Set(records.map(r => r.char))].sort();
+    const sel = document.getElementById('filter-char');
+    const current = sel.value;
+    sel.innerHTML = '<option value="">全キャラ</option>' + chars.map(c => `<option value="${c}">${c}</option>`).join('');
+    sel.value = current;
+}
+
+// =====================================================================
+// EDIT / DELETE
+// =====================================================================
+function openEdit(id) {
+    const r = records.find(r => r.id === id);
+    if (!r) return;
+    editingId = id;
+    const isCM = r.mode === 'CM';
+    document.getElementById('edit-lp-group').style.display = isCM ? 'none' : '';
+    document.getElementById('edit-cm-group').style.display = isCM ? '' : 'none';
+    document.getElementById('edit-lp').value = r.lp ?? '';
+    // For CM, count wins/loses from this specific record's session (single record)
+    document.getElementById('edit-cm-win').value = (isCM && r.result === 'WIN') ? 1 : 0;
+    document.getElementById('edit-cm-lose').value = (isCM && r.result === 'LOSE') ? 1 : 0;
+    document.getElementById('edit-memo').value = r.memo;
+    document.getElementById('edit-modal').classList.remove('hidden');
+}
+
+function saveEdit() {
+    const id = editingId;
+    const memo = document.getElementById('edit-memo').value.trim();
+    const idx = records.findIndex(r => r.id === id);
+    if (idx === -1) return;
+    const isCM = records[idx].mode === 'CM';
+    if (isCM) {
+        const win = parseInt(document.getElementById('edit-cm-win').value) || 0;
+        const lose = parseInt(document.getElementById('edit-cm-lose').value) || 0;
+        if (win + lose === 0) { showToast('⚠️ 勝敗数を入力してください', '#ef4444'); return; }
+        // Update result based on whichever is higher; if mixed, keep as is but update memo
+        records[idx].result = win >= lose ? 'WIN' : 'LOSE';
+        records[idx].memo = memo;
+    } else {
+        const lp = parseInt(document.getElementById('edit-lp').value);
+        if (isNaN(lp)) { showToast('⚠️ LPを入力してください', '#ef4444'); return; }
+        records[idx].lp = lp;
+        records[idx].memo = memo;
+        // Auto-update rank
+        const rank = getRankFromLP(lp);
+        if (rank) records[idx].rank = rank;
+        // Update char memory
+        charLPMemory[records[idx].char] = lp;
+        saveCharLPMemory(charLPMemory);
+    }
+    recalcDiffs();
+    saveRecords(records);
+    closeModal();
+    updateAll();
+    showToast('✏️ 記録を更新しました');
+}
+
+function closeModal() {
+    document.getElementById('edit-modal').classList.add('hidden');
+    editingId = null;
+}
+
+document.getElementById('edit-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+});
+
+function deleteRecord(id) {
+    if (!confirm('この記録を削除しますか？')) return;
+    records = records.filter(r => r.id !== id);
+    recalcDiffs();
+    saveRecords(records);
+    updateAll();
+    showToast('🗑️ 記録を削除しました');
+}
+
+function recalcDiffs() {
+    for (let i = 0; i < records.length; i++) {
+        if (records[i].mode === 'CM') { records[i].diff = 0; continue; }
+        const prevLP = (() => {
+            for (let j = i - 1; j >= 0; j--) {
+                if (records[j].lp != null) return records[j].lp;
+            }
+            return null;
+        })();
+        records[i].diff = prevLP !== null ? records[i].lp - prevLP : 0;
+    }
+}
+
+// =====================================================================
+// EXPORT CSV
+// =====================================================================
+function exportCSV() {
+    if (records.length === 0) { showToast('⚠️ 記録がありません', '#ef4444'); return; }
+    const header = '日付,キャラ,モード,ランク,LP,変動/勝敗,対戦相手,メモ';
+    const rows = records.map(r =>
+        `${r.date},${r.char},${r.mode},${r.mode==='CM'?'—':(RANK_LABELS[r.rank]||r.rank)},${r.lp??'—'},${r.mode==='CM'?(r.result||'—'):r.diff},${r.opponent||'—'},"${r.memo}"`
+    );
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'sf6_lp_records.csv'; a.click();
+    URL.revokeObjectURL(url);
+    showToast('📥 CSVをダウンロードしました');
+}
+
+// =====================================================================
+// IMPORT CSV
+// =====================================================================
+function importCSV(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const text = e.target.result.replace(/^﻿/, ''); // BOM除去
+            const lines = text.split(/\r?\n/).filter(l => l.trim());
+            if (lines.length < 2) { showToast('⚠️ CSVにデータがありません', '#ef4444'); return; }
+            // ヘッダー行スキップ
+            const imported = [];
+            for (let i = 1; i < lines.length; i++) {
+                // RFC-4180 対応CSVパーサー
+                const cols = (function parseCsvLine(line) {
+                    const result = [];
+                    let cur = '', inQ = false;
+                    for (let ci = 0; ci < line.length; ci++) {
+                        const ch = line[ci];
+                        if (inQ) {
+                            if (ch === '"' && line[ci+1] === '"') { cur += '"'; ci++; }
+                            else if (ch === '"') { inQ = false; }
+                            else { cur += ch; }
+                        } else {
+                            if (ch === '"') { inQ = true; }
+                            else if (ch === ',') { result.push(cur); cur = ''; }
+                            else { cur += ch; }
+                        }
+                    }
+                    result.push(cur);
+                    return result;
+                })(lines[i]);
+                const clean = cols.map(c => c.replace(/^"|"$/g, '').trim());
+                const [date, char, mode, rank, lp, diffOrResult, opponent, memo] = clean;
+                if (!date || !char || !mode) continue;
+                const rec = {
+                    id: Date.now() + i,
+                    date: date,
+                    char: char,
+                    mode: mode,
+                    rank: Object.keys(RANK_LABELS).find(k => RANK_LABELS[k] === rank) || rank,
+                    lp: lp && lp !== '—' ? parseInt(lp) : null,
+                    diff: mode !== 'CM' ? (parseInt(diffOrResult) || null) : null,
+                    result: mode === 'CM' ? (diffOrResult || '') : '',
+                    opponent: opponent && opponent !== '—' ? opponent : '',
+                    memo: memo || '',
+                };
+                imported.push(rec);
+            }
+            if (imported.length === 0) { showToast('⚠️ 取り込めるデータがありませんでした', '#ef4444'); return; }
+            // 既存データと重複しないIDで追加（上書きではなく追記）
+            records = [...records, ...imported];
+            recalcDiffs();
+            saveRecords(records);
+            updateAll();
+            showToast(`✅ ${imported.length}件をインポートしました`);
+        } catch(err) {
+            showToast('⚠️ CSVの読み込みに失敗しました: ' + err.message, '#ef4444');
+        }
+        event.target.value = ''; // 同じファイルを再インポートできるようリセット
+    };
+    reader.readAsText(file, 'UTF-8');
+}
+
+function clearAllData() {
+    if (!confirm('全ての記録を削除しますか？この操作は元に戻せません。')) return;
+    records = [];
+    saveRecords(records);
+    updateAll();
+    showToast('🗑️ 全データを削除しました');
+}
+
+// =====================================================================
+// TOAST
+// =====================================================================
+function showToast(msg, color = '#ff6a00') {
+    const existing = document.querySelector('.toast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.style.borderLeftColor = color;
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3100);
+}
+
+// =====================================================================
+// DATE RANGE CLEAR
+// =====================================================================
+function openDateClearModal() {
+    document.getElementById('date-clear-modal').classList.remove('hidden');
+    document.getElementById('clear-date-from').value = '';
+    document.getElementById('clear-date-to').value = '';
+    document.getElementById('clear-preview').textContent = '';
+    ['clear-date-from', 'clear-date-to'].forEach(id => {
+        document.getElementById(id).addEventListener('input', updateClearPreview);
+    });
+}
+
+function updateClearPreview() {
+    const from = document.getElementById('clear-date-from').value;
+    const to = document.getElementById('clear-date-to').value;
+    if (!from && !to) { document.getElementById('clear-preview').textContent = ''; return; }
+    const count = records.filter(r => {
+        if (from && r.date < from) return false;
+        if (to && r.date > to) return false;
+        return true;
+    }).length;
+    document.getElementById('clear-preview').textContent = `対象: ${count} 件`;
+}
+
+function execDateClear() {
+    const from = document.getElementById('clear-date-from').value;
+    const to = document.getElementById('clear-date-to').value;
+    const before = records.length;
+    records = records.filter(r => {
+        if (from && r.date < from) return true;
+        if (to && r.date > to) return true;
+        return false;
+    });
+    const removed = before - records.length;
+    if (removed === 0) { showToast('⚠️ 対象の記録がありません', '#ef4444'); return; }
+    recalcDiffs();
+    saveRecords(records);
+    updateAll();
+    closeDateClearModal();
+    showToast(`🗑️ ${removed} 件の記録を削除しました`);
+}
+
+function closeDateClearModal() {
+    document.getElementById('date-clear-modal').classList.add('hidden');
+}
+
+document.getElementById('date-clear-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeDateClearModal();
+});
+
+
+// =====================================================================
+// ROOM ID
+// =====================================================================
+let currentRoom = '';
+
+function enterRoom() {
+    const val = document.getElementById('room-id-input').value.trim();
+    const errEl = document.getElementById('room-id-error');
+    if (!val || val.length > 32 || /[:\s\/\\]/.test(val)) {
+        errEl.textContent = 'スペース・コロン・スラッシュは使用不可（1〜32文字）';
+        return;
+    }
+    errEl.textContent = '';
+    currentRoom = val;
+    localStorage.setItem('lastRoom', val);
+    document.getElementById('room-modal').style.display = 'none';
+    // バッジ表示
+    document.getElementById('room-badge').style.display = 'flex';
+    document.getElementById('room-badge-name').textContent = currentRoom;
+    initApp();
+}
+
+function changeRoom() {
+    document.getElementById('room-id-input').value = currentRoom;
+    document.getElementById('room-id-error').textContent = '';
+    document.getElementById('room-modal').style.display = 'flex';
+}
+
+// =====================================================================
+// INIT
+// =====================================================================
+async function initApp() {
+    try {
+        [records, charLPMemory, combos, notes] = await Promise.all([
+            fetch(`/api/${currentRoom}/records`).then(r => r.json()).catch(() => []),
+            fetch(`/api/${currentRoom}/char_lp_memory`).then(r => r.json()).catch(() => ({})),
+            fetch(`/api/${currentRoom}/combos`).then(r => r.json()).catch(() => []),
+            fetch(`/api/${currentRoom}/notes`).then(r => r.json()).catch(() => [])
+        ]);
+    } catch (e) {
+        console.error('データ読み込みエラー:', e);
+    }
+    initTCPanel();
+    applyCharColors('combo-char');
+    applyCharColors('ct-char-filter');
+    applyCharColors('input-char');
+    // 最後に選択したキャラを復元
+    const lastChar = localStorage.getItem('lastChar');
+    if (lastChar) {
+        const sel = document.getElementById('input-char');
+        if ([...sel.options].some(o => o.value === lastChar)) {
+            sel.value = lastChar;
+            onCharChange();
+        }
+    }
+    updateAll();
+    renderComboTable();
+    renderNoteList();
+}
+// initApp() はルームID入力後に enterRoom() から呼ばれる
+// ルームIDを localStorage から自動復元
+(function() {
+    const _saved = localStorage.getItem('lastRoom');
+    if (_saved) {
+        const _inp = document.getElementById('room-id-input');
+        if (_inp) _inp.value = _saved;
+        // 自動入室
+        enterRoom();
+    }
+})();
+</script>
+
+<!-- ===== ROOM LOGIN MODAL ===== -->
+<div id="room-modal" style="
+    position:fixed; inset:0; z-index:9999;
+    background:rgba(0,0,0,0.85);
+    display:flex; align-items:center; justify-content:center;
+">
+    <div style="
+        background:var(--bg-panel); border:1px solid var(--border-color);
+        border-radius:16px; padding:36px 32px; width:340px; max-width:90vw;
+        box-shadow:0 8px 40px rgba(0,0,0,0.6);
+        text-align:center;
+    ">
+        <div style="font-size:2.4rem; margin-bottom:8px;">⚡</div>
+        <h2 style="margin:0 0 4px; font-size:1.3rem;">SF6 LP TRACKER</h2>
+        <p style="color:var(--text-muted); font-size:0.85rem; margin:0 0 24px;">ルームIDを入力してください（日本語OK）</p>
+        <input id="room-id-input" type="text"
+            placeholder="ルームID（日本語可・1〜32文字）"
+            maxlength="32"
+            style="
+                width:100%; box-sizing:border-box;
+                padding:10px 14px; border-radius:8px;
+                border:1px solid var(--border-color);
+                background:var(--bg-input,#1a1a2e); color:var(--text-primary);
+                font-size:1rem; margin-bottom:8px;
+                outline:none;
+            "
+            onkeydown="if(event.key==='Enter') enterRoom()"
+        >
+        <div id="room-id-error" style="color:#ef4444; font-size:0.8rem; min-height:1.2em; margin-bottom:8px;"></div>
+        <button onclick="enterRoom()" style="
+            width:100%; padding:11px; border-radius:8px;
+            background:linear-gradient(135deg,#ff6a00,#ee0979);
+            border:none; color:#fff; font-size:1rem; font-weight:700;
+            cursor:pointer;
+        ">入室</button>
+        <p style="color:var(--text-muted); font-size:0.75rem; margin:16px 0 0;">
+            同じIDを入力すると同じデータにアクセスできます
+        </p>
+    </div>
+</div>
+</body>
+</html>
